@@ -25,42 +25,23 @@
       <span class="brand-mark">CP</span>
       <span class="brand-title">Close Protection Ops</span>
     </div>
-    <div class="op-switcher">
-      <select id="opSelect" title="Current operation"></select>
-      <select id="opStatusSelect" title="Operation status">
-        <option value="planning">Planning</option>
-        <option value="live">Live</option>
-        <option value="complete">Complete</option>
-      </select>
-      <button id="newOpBtn" class="btn btn-small">+ New Operation</button>
-    </div>
     <div class="header-actions">
-      <button id="exportBtn" class="btn">Export Operation</button>
-      <button id="exportAllBtn" class="btn">Export Full Backup</button>
+      <button id="exportBtn" class="btn">Export Data</button>
       <button id="importBtn" class="btn">Import Data</button>
       <input type="file" id="importInput" accept="application/json" hidden>
     </div>
   </header>
-  <div id="opStatusBanner" class="op-status-banner"></div>
   <div class="layout">
     <nav id="sidebar" class="sidebar"></nav>
     <main id="content" class="content"></main>
   </div>
   <footer id="appFooter">Close Protection Ops &mdash; built by RDanzen Ltd</footer>
-  <nav id="mobileQuickBar" class="mobile-quick-bar">
-    <a href="#team" title="Team"><span>👥</span></a>
-    <a href="#medical" title="Medical"><span>🩺</span></a>
-    <a href="#commsTree" title="Comms"><span>📡</span></a>
-    <a href="#eventSecurity" title="Log Incident"><span>🛡️</span></a>
-    <a href="#actionsOn" title="Actions On"><span>⚡</span></a>
-  </nav>
 </div>
 
 <script src="js/storage.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/segments/dashboard.js"></script>
 <script src="js/segments/team.js"></script>
-<script src="js/segments/commsTree.js"></script>
 <script src="js/segments/medical.js"></script>
 <script src="js/segments/routes.js"></script>
 <script src="js/segments/advance.js"></script>
@@ -70,6 +51,7 @@
 <script src="js/segments/threatZones.js"></script>
 <script src="js/segments/travelDocs.js"></script>
 <script src="js/segments/uklaws.js"></script>
+<script src="js/segments/exportDoc.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
