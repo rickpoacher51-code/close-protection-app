@@ -6,6 +6,9 @@ CP.registerSegment({
     container.innerHTML =
       '<h1>Event Security</h1>' +
       '<section class="panel"><h2>Security Plan</h2><div id="evPlan"></div></section>' +
+      '<section class="panel"><h2>Venue Plans & Documents</h2>' +
+      '<p class="hint">Upload venue floor plans, security diagrams, or briefing PDFs and attach details. Files are stored in this browser only, so keep them reasonably small (a few MB total).</p>' +
+      '<div id="evDocs"></div></section>' +
       '<section class="panel"><h2>Incident Log</h2><div id="evLog"></div></section>';
 
     CP.ui.profileForm(container.querySelector('#evPlan'), {
@@ -19,6 +22,12 @@ CP.registerSegment({
         { key: 'screeningPlan', label: 'Screening Plan', type: 'textarea' },
         { key: 'seatingStagePlan', label: 'Seating / Stage Plan', type: 'textarea' }
       ]
+    });
+
+    CP.ui.docLibrary(container.querySelector('#evDocs'), {
+      storageKey: 'eventDocuments',
+      addLabel: '+ Add Plan / Document',
+      emptyMessage: 'No plans or documents added yet.'
     });
 
     CP.ui.crud(container.querySelector('#evLog'), {

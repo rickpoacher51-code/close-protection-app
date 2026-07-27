@@ -9,6 +9,10 @@ CP.registerSegment({
         body: 'Close protection work in the UK is a licensable activity under the Private Security Industry Act 2001. Operatives generally require a valid SIA Close Protection licence to work in a CP role for reward. Check licence validity and renewal dates for every team member before deployment.'
       },
       {
+        title: 'Martyn’s Law — Terrorism (Protection of Premises) Act 2025',
+        body: 'Martyn’s Law places new counter-terrorism duties on those responsible for qualifying public premises and events, named after Martyn Hett, a victim of the 2017 Manchester Arena attack. A "standard tier" (broadly, venues/events with a capacity around 200+) requires basic preparedness — staff training, a public protection plan, and simple physical measures. An "enhanced tier" (broadly, capacity around 800+) adds a requirement for a documented assessment and more substantial security measures. The Security Industry Authority (SIA) is the appointed regulator. Thresholds, duties, and the enforcement start date were still being finalised in official guidance as this was written — confirm current requirements and the compliance deadline directly with the SIA’s Martyn’s Law guidance before treating any venue or event as compliant, and factor it into Event Security and Advance Party planning for any qualifying premises.'
+      },
+      {
         title: 'Use of Force — Criminal Law Act 1967 s.3 & Common Law Self-Defence',
         body: 'Any force used to protect the principal, yourself, or others must be reasonable and proportionate in the circumstances as honestly believed at the time. This applies equally to self-defence, defence of another, and prevention of crime. Excessive or pre-emptive force is not protected. Document any use of force as soon as practicable after the event.'
       },

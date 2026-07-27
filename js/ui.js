@@ -1,6 +1,18 @@
 window.CP = window.CP || {};
 CP.ui = {};
 
+// Common international dialling codes for phone-number fields.
+CP.ui.COUNTRY_CODES = [
+  '+44 (UK)', '+1 (US/Canada)', '+353 (Ireland)', '+33 (France)', '+49 (Germany)',
+  '+34 (Spain)', '+39 (Italy)', '+31 (Netherlands)', '+32 (Belgium)', '+41 (Switzerland)',
+  '+351 (Portugal)', '+30 (Greece)', '+90 (Turkey)', '+971 (UAE)', '+966 (Saudi Arabia)',
+  '+974 (Qatar)', '+965 (Kuwait)', '+20 (Egypt)', '+27 (South Africa)', '+234 (Nigeria)',
+  '+254 (Kenya)', '+91 (India)', '+92 (Pakistan)', '+86 (China)', '+81 (Japan)',
+  '+82 (South Korea)', '+65 (Singapore)', '+60 (Malaysia)', '+66 (Thailand)', '+63 (Philippines)',
+  '+61 (Australia)', '+64 (New Zealand)', '+7 (Russia)', '+380 (Ukraine)', '+55 (Brazil)',
+  '+52 (Mexico)', '+57 (Colombia)', '+54 (Argentina)', 'Other'
+];
+
 CP.ui.escapeHtml = function (str) {
   if (str === undefined || str === null) return '';
   return String(str)
@@ -14,6 +26,12 @@ CP.ui.escapeHtml = function (str) {
 CP.ui.slug = function (s) {
   var out = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   return out || 'none';
+};
+
+// 'bloodType' -> 'Blood Type'
+CP.ui.prettifyKey = function (key) {
+  var spaced = String(key || '').replace(/([A-Z])/g, ' $1');
+  return (spaced.charAt(0).toUpperCase() + spaced.slice(1)).trim();
 };
 
 CP.ui.mapsLink = function (address) {
@@ -317,6 +335,128 @@ CP.ui.checklist = function (container, opts) {
       draw();
     });
   }
+  draw();
+};
+
+// Document library: upload a PDF/image, attach a title and notes, view/download it later.
+// Files are stored as data URLs inside localStorage, so keep files small (a few MB total budget).
+// opts: { storageKey, addLabel, emptyMessage }
+CP.ui.docLibrary = function (container, opts) {
+  var editId = null;
+  var formOpen = false;
+
+  function load() { return CP.storage.load(opts.storageKey, []); }
+
+  function persist(list) {
+    try {
+      CP.storage.save(opts.storageKey, list);
+      return true;
+    } catch (e) {
+      alert('Could not save: the file may be too large for browser storage. Try a smaller file, or remove an older document first.');
+      return false;
+    }
+  }
+
+  function formHtml(record) {
+    record = record || {};
+    return '<form class="crud-form" id="docForm">' +
+      '<label class="field"><span>Title *</span><input type="text" name="title" value="' + CP.ui.escapeHtml(record.title || '') + '"></label>' +
+      '<label class="field"><span>File (PDF or image)' + (record.fileName ? ' — currently: ' + CP.ui.escapeHtml(record.fileName) : '') + '</span>' +
+      '<input type="file" name="file" accept="application/pdf,image/*"></label>' +
+      '<label class="field"><span>Notes / Details</span><textarea name="notes" rows="3">' + CP.ui.escapeHtml(record.notes || '') + '</textarea></label>' +
+      '<div class="form-actions">' +
+      '<button type="submit" class="btn btn-primary">' + (editId ? 'Save Changes' : 'Add') + '</button>' +
+      '<button type="button" class="btn" id="docCancel">Cancel</button>' +
+      '</div></form>';
+  }
+
+  function cardHtml(rec) {
+    var viewLink = rec.dataUrl
+      ? '<a class="btn btn-small" href="' + rec.dataUrl + '" download="' + CP.ui.escapeHtml(rec.fileName || 'document') + '" target="_blank" rel="noopener">View / Download</a>'
+      : '';
+    return '<div class="card">' +
+      '<div class="card-head"><h3>' + CP.ui.escapeHtml(rec.title) + '</h3>' +
+      (rec.fileName ? '<span class="badge">' + CP.ui.escapeHtml(rec.fileName) + '</span>' : '') +
+      '</div>' +
+      (rec.notes ? '<p class="notes">' + CP.ui.escapeHtml(rec.notes) + '</p>' : '') +
+      '<div class="card-actions">' + viewLink +
+      ' <button class="btn btn-small" data-act="edit" data-id="' + rec.id + '">Edit</button>' +
+      ' <button class="btn btn-small btn-danger" data-act="delete" data-id="' + rec.id + '">Delete</button>' +
+      '</div></div>';
+  }
+
+  function draw() {
+    var list = load();
+    var recordForForm = editId ? list.filter(function (r) { return r.id === editId; })[0] : {};
+    var html = '<div class="segment-toolbar"><button class="btn btn-primary" id="docAddBtn">' + (opts.addLabel || '+ Add Document') + '</button></div>';
+    html += '<div id="docFormWrap">' + (formOpen ? formHtml(recordForForm) : '') + '</div>';
+    html += '<div class="card-grid" id="docListWrap">' +
+      (list.length ? list.map(cardHtml).join('') : '<p class="empty-msg">' + (opts.emptyMessage || 'No documents added yet.') + '</p>') +
+      '</div>';
+    container.innerHTML = html;
+
+    var addBtn = container.querySelector('#docAddBtn');
+    if (addBtn) {
+      addBtn.addEventListener('click', function () { editId = null; formOpen = true; draw(); });
+    }
+
+    var cancelBtn = container.querySelector('#docCancel');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function () { formOpen = false; editId = null; draw(); });
+    }
+
+    var form = container.querySelector('#docForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var title = form.title.value.trim();
+        if (!title) { alert('Please enter a title.'); return; }
+        var file = form.file.files[0];
+        var notes = form.notes.value;
+
+        function finish(dataUrl, fileName, fileType) {
+          var current = load();
+          if (editId) {
+            current = current.map(function (r) {
+              if (r.id !== editId) return r;
+              var updated = Object.assign({}, r, { title: title, notes: notes });
+              if (dataUrl) { updated.dataUrl = dataUrl; updated.fileName = fileName; updated.fileType = fileType; }
+              return updated;
+            });
+          } else {
+            current.push({
+              id: CP.storage.uid(), title: title, notes: notes,
+              dataUrl: dataUrl || '', fileName: fileName || '', fileType: fileType || '',
+              addedDate: new Date().toISOString().slice(0, 10)
+            });
+          }
+          if (persist(current)) { formOpen = false; editId = null; draw(); }
+        }
+
+        if (file) {
+          var reader = new FileReader();
+          reader.onload = function () { finish(reader.result, file.name, file.type); };
+          reader.onerror = function () { alert('Could not read the file.'); };
+          reader.readAsDataURL(file);
+        } else {
+          finish(null, null, null);
+        }
+      });
+    }
+
+    container.querySelectorAll('[data-act="edit"]').forEach(function (btn) {
+      btn.addEventListener('click', function () { editId = btn.getAttribute('data-id'); formOpen = true; draw(); });
+    });
+    container.querySelectorAll('[data-act="delete"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Delete this document?')) return;
+        var id = btn.getAttribute('data-id');
+        persist(load().filter(function (r) { return r.id !== id; }));
+        draw();
+      });
+    });
+  }
+
   draw();
 };
 

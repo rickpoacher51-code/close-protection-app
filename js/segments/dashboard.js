@@ -24,7 +24,7 @@ CP.registerSegment({
       medical: CP.storage.load('casevacHospitals', []).length,
       routes: CP.storage.load('routes', []).length,
       advance: CP.storage.load('advanceVenues', []).length,
-      eventSecurity: CP.storage.load('eventIncidentLog', []).length,
+      eventSecurity: CP.storage.load('eventIncidentLog', []).length + CP.storage.load('eventDocuments', []).length,
       rst: CP.storage.load('rstRoster', []).length,
       actionsOn: CP.storage.load('actionsOnDrills', []).length,
       threatZones: CP.storage.load('threatRegions', []).length,
@@ -36,12 +36,13 @@ CP.registerSegment({
       { key: 'medical', label: 'Medical', desc: counts.medical + ' hospital(s) logged' },
       { key: 'routes', label: 'Route Planning', desc: counts.routes + ' route(s)' },
       { key: 'advance', label: 'Advance Party', desc: counts.advance + ' venue(s)' },
-      { key: 'eventSecurity', label: 'Event Security', desc: counts.eventSecurity + ' log entrie(s)' },
+      { key: 'eventSecurity', label: 'Event Security', desc: counts.eventSecurity + ' log entrie(s) / document(s)' },
       { key: 'rst', label: 'RST', desc: counts.rst + ' roster entrie(s)' },
       { key: 'actionsOn', label: 'Actions On', desc: counts.actionsOn + ' drill(s)' },
       { key: 'threatZones', label: 'Global Threats & Extraction', desc: counts.threatZones + ' region(s) logged' },
       { key: 'travelDocs', label: 'Travel Documentation', desc: counts.travelDocs + ' countr(y/ies) logged' },
-      { key: 'uklaws', label: 'UK Laws', desc: 'Reference' }
+      { key: 'uklaws', label: 'UK Laws', desc: 'Reference' },
+      { key: 'export', label: 'Export Document', desc: 'Share a Word-compatible copy' }
     ];
 
     container.querySelector('#quickGrid').innerHTML = cards.map(function (c) {

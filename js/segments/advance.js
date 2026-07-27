@@ -6,6 +6,7 @@ CP.registerSegment({
     container.innerHTML =
       '<h1>Advance Party</h1>' +
       '<section class="panel"><h2>Venues</h2><div id="advVenues"></div></section>' +
+      '<section class="panel"><h2>Comms / Emergency Contacts</h2><div id="advComms"></div></section>' +
       '<section class="panel"><h2>Advance Tasks</h2><div id="advTasks"></div></section>';
 
     CP.ui.crud(container.querySelector('#advVenues'), {
@@ -26,6 +27,19 @@ CP.registerSegment({
       columns: ['venueName', 'address', 'eventDate', 'contactName'],
       emptyMessage: 'No venues added yet.',
       rowLinks: function (rec) { return rec.address ? [{ label: 'Map', url: CP.ui.mapsLink(rec.address) }] : []; }
+    });
+
+    CP.ui.crud(container.querySelector('#advComms'), {
+      storageKey: 'commsContacts',
+      addLabel: '+ Add Contact',
+      fields: [
+        { key: 'service', label: 'Service', type: 'select', options: ['Police', 'Fire', 'Ambulance', 'Venue Security', 'Control Room', 'Other'], badge: true },
+        { key: 'countryCode', label: 'Country Code', type: 'select', options: CP.ui.COUNTRY_CODES },
+        { key: 'number', label: 'Number', required: true, type: 'tel' },
+        { key: 'notes', label: 'Notes', type: 'textarea' }
+      ],
+      columns: ['service', 'countryCode', 'number'],
+      emptyMessage: 'No comms contacts added yet.'
     });
 
     CP.ui.crud(container.querySelector('#advTasks'), {
