@@ -58,6 +58,15 @@ html, body {
 
 .brand-title { font-weight: 600; letter-spacing: 0.3px; }
 
+.current-op-label {
+  background: #1e2731;
+  border: 1px solid var(--panel-border);
+  color: var(--text-dim);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
 .header-actions { display: flex; gap: 8px; }
 
 .layout {

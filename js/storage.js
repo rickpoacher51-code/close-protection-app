@@ -9,10 +9,44 @@ CP.registerSegment = function (seg) {
   CP.NAV.push(seg);
 };
 
+// Every data key used anywhere in the app. Used only for the one-time migration
+// below, to move a pre-existing (single-operation) install into "Operation 1".
+var CP_KNOWN_DATA_KEYS = [
+  'opInfo', 'team', 'medicalProfile', 'principalFamily', 'medicalKitChecklist',
+  'casevacHospitals', 'medicationLegality', 'routes', 'advanceVenues', 'commsContacts',
+  'advanceTasks', 'eventSecurityPlan', 'eventDocuments', 'eventIncidentLog',
+  'rstRoster', 'rstPerimeterChecklist', 'rstVisitorLog', 'rstPatrolLog',
+  'actionsOnDrills', 'actionsOnSeeded', 'threatRegions', 'safeHavens',
+  'extractionPoints', 'travelDocs', 'uklawsNotes'
+];
+
+function cpMigrateToOperationsIfNeeded() {
+  if (localStorage.getItem(CP.PREFIX + 'operations')) return;
+
+  var id = 'op_' + CP.storage.uid();
+  var opInfoRaw = localStorage.getItem(CP.PREFIX + 'opInfo');
+  var opInfo = {};
+  try { opInfo = opInfoRaw ? JSON.parse(opInfoRaw) : {}; } catch (e) { opInfo = {}; }
+  var name = opInfo.operationName || 'Operation 1';
+
+  CP_KNOWN_DATA_KEYS.forEach(function (key) {
+    var raw = localStorage.getItem(CP.PREFIX + key);
+    if (raw !== null) {
+      localStorage.setItem(CP.PREFIX + id + '_' + key, raw);
+      localStorage.removeItem(CP.PREFIX + key);
+    }
+  });
+
+  localStorage.setItem(CP.PREFIX + 'operations', JSON.stringify([
+    { id: id, name: name, createdDate: new Date().toISOString().slice(0, 10) }
+  ]));
+  localStorage.setItem(CP.PREFIX + 'currentOperationId', id);
+}
+
 CP.storage = {
   load: function (key, fallback) {
     try {
-      var raw = localStorage.getItem(CP.PREFIX + key);
+      var raw = localStorage.getItem(CP.PREFIX + CP.storage.getCurrentOperationId() + '_' + key);
       if (raw === null) return fallback;
       return JSON.parse(raw);
     } catch (e) {
@@ -22,12 +56,68 @@ CP.storage = {
   },
 
   save: function (key, value) {
-    localStorage.setItem(CP.PREFIX + key, JSON.stringify(value));
+    localStorage.setItem(CP.PREFIX + CP.storage.getCurrentOperationId() + '_' + key, JSON.stringify(value));
   },
 
   uid: function () {
     return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   },
+
+  // --- Operations (separate "pages" of data you can switch between) ---
+
+  getOperations: function () {
+    try {
+      return JSON.parse(localStorage.getItem(CP.PREFIX + 'operations')) || [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  getCurrentOperationId: function () {
+    return localStorage.getItem(CP.PREFIX + 'currentOperationId');
+  },
+
+  setCurrentOperationId: function (id) {
+    localStorage.setItem(CP.PREFIX + 'currentOperationId', id);
+  },
+
+  createOperation: function (name) {
+    var ops = CP.storage.getOperations();
+    var id = 'op_' + CP.storage.uid();
+    ops.push({ id: id, name: name || ('Operation ' + (ops.length + 1)), createdDate: new Date().toISOString().slice(0, 10) });
+    localStorage.setItem(CP.PREFIX + 'operations', JSON.stringify(ops));
+    return id;
+  },
+
+  renameOperation: function (id, name) {
+    var ops = CP.storage.getOperations().map(function (o) {
+      return o.id === id ? Object.assign({}, o, { name: name }) : o;
+    });
+    localStorage.setItem(CP.PREFIX + 'operations', JSON.stringify(ops));
+  },
+
+  // Returns false if this was the only remaining operation (delete refused).
+  deleteOperation: function (id) {
+    var ops = CP.storage.getOperations();
+    if (ops.length <= 1) return false;
+    ops = ops.filter(function (o) { return o.id !== id; });
+    localStorage.setItem(CP.PREFIX + 'operations', JSON.stringify(ops));
+
+    var opPrefix = CP.PREFIX + id + '_';
+    var toRemove = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k.indexOf(opPrefix) === 0) toRemove.push(k);
+    }
+    toRemove.forEach(function (k) { localStorage.removeItem(k); });
+
+    if (CP.storage.getCurrentOperationId() === id) {
+      CP.storage.setCurrentOperationId(ops[0].id);
+    }
+    return true;
+  },
+
+  // --- Full backup across ALL operations (JSON export/import in the header) ---
 
   exportAll: function () {
     var out = {};
@@ -70,3 +160,5 @@ CP.storage = {
     reader.readAsText(file);
   }
 };
+
+cpMigrateToOperationsIfNeeded();

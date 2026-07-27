@@ -21,6 +21,14 @@ function cpRenderContent() {
   document.title = 'CP Ops — ' + seg.label;
 }
 
+function cpRenderOpLabel() {
+  var label = document.getElementById('currentOpLabel');
+  var ops = CP.storage.getOperations();
+  var currentId = CP.storage.getCurrentOperationId();
+  var current = ops.filter(function (o) { return o.id === currentId; })[0];
+  label.textContent = current ? current.name : '';
+}
+
 function cpWireHeader() {
   document.getElementById('exportBtn').addEventListener('click', function () {
     CP.storage.exportAll();
@@ -51,6 +59,7 @@ function cpWireHeader() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  cpRenderOpLabel();
   cpRenderNav();
   cpRenderContent();
   cpWireHeader();
