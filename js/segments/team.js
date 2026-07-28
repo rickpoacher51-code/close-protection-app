@@ -13,10 +13,11 @@ CP.registerSegment({
         { key: 'phone', label: 'Phone', type: 'tel' },
         { key: 'bloodType', label: 'Blood Type', type: 'select', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'] },
         { key: 'siaBadge', label: 'SIA Badge No.' },
-        { key: 'vehicle', label: 'Vehicle Assigned' },
+        { key: 'vehicleReg', label: 'Vehicle Registration' },
+        { key: 'vehicleType', label: 'Vehicle Type / Make & Model' },
         { key: 'notes', label: 'Notes', type: 'textarea' }
       ],
-      columns: ['name', 'role', 'phone', 'vehicle'],
+      columns: ['name', 'role', 'phone', 'vehicleReg', 'vehicleType'],
       emptyMessage: 'No team members added yet.'
     });
   }

@@ -461,7 +461,7 @@ CP.ui.docLibrary = function (container, opts) {
 };
 
 // Single-object form (profile-style) backed by CP.storage.
-// opts: { storageKey, fields[] }
+// opts: { storageKey, fields[], validate: function(data) -> error string | falsy }
 CP.ui.profileForm = function (container, opts) {
   function load() { return CP.storage.load(opts.storageKey, {}); }
 
@@ -482,6 +482,10 @@ CP.ui.profileForm = function (container, opts) {
         var el = container.querySelector('[name="' + f.key + '"]');
         d[f.key] = el ? el.value : '';
       });
+      if (opts.validate) {
+        var error = opts.validate(d);
+        if (error) { alert(error); return; }
+      }
       CP.storage.save(opts.storageKey, d);
       var ind = container.querySelector('#saveIndicator');
       if (ind) {

@@ -75,7 +75,13 @@ CP.registerSegment({
         { key: 'startDate', label: 'Start Date', type: 'date' },
         { key: 'endDate', label: 'End Date', type: 'date' },
         { key: 'notes', label: 'Notes', type: 'textarea' }
-      ]
+      ],
+      validate: function (data) {
+        if (data.startDate && data.endDate && data.endDate < data.startDate) {
+          return 'End date can’t be before the start date.';
+        }
+        return null;
+      }
     });
 
     var counts = {
