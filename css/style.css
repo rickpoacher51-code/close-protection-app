@@ -305,16 +305,19 @@ tr:hover td { background: #131b22; }
 .card .notes { color: var(--text-dim); font-size: 13px; font-style: italic; }
 .card-actions { display: flex; gap: 8px; margin-top: 10px; }
 
-/* UK Laws accordion */
-.law-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-.law-item {
+/* UK Laws accordion (and reused for other static reference content, e.g. MARCH/AVPU) */
+.law-list, .ref-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.law-item, .ref-item {
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
   padding: 12px 16px;
 }
-.law-item summary { cursor: pointer; font-weight: 600; }
-.law-item p { margin: 10px 0 2px; color: var(--text-dim); font-size: 13.5px; }
+.law-item summary, .ref-item summary { cursor: pointer; font-weight: 600; }
+.law-item p, .ref-item p { margin: 10px 0 2px; color: var(--text-dim); font-size: 13.5px; }
+.ref-item ol { margin: 8px 0 2px; padding-left: 20px; }
+.ref-item ol li { margin-bottom: 6px; font-size: 13.5px; }
+.ref-item ol li strong { color: var(--text); }
 
 /* Print */
 @media print {
