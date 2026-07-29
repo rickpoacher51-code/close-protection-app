@@ -322,6 +322,81 @@ tr:hover td { background: #131b22; }
 .ref-item ol li { margin-bottom: 6px; font-size: 13.5px; }
 .ref-item ol li strong { color: var(--text); }
 
+/* Lock / disclaimer full-screen overlays */
+.lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.lock-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+
+.lock-card.lock-card-wide { max-width: 640px; text-align: left; }
+
+.lock-emblem img { width: 64px; height: 64px; border-radius: var(--radius); margin-bottom: 12px; }
+
+.lock-card h2 { margin: 0 0 14px; font-size: 18px; }
+
+.lock-card form { display: flex; flex-direction: column; gap: 12px; }
+
+.lock-card input[type="password"], .lock-card input[type="text"] {
+  background: #0c1216;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 20px;
+  text-align: center;
+  letter-spacing: 4px;
+}
+
+.lock-card input[type="text"] { font-size: 15px; letter-spacing: normal; }
+
+.lock-card a { display: inline-block; margin-top: 14px; color: var(--text-dim); font-size: 13px; }
+
+.lock-error { color: #e57368; font-size: 13px; min-height: 16px; }
+
+.lock-phrase {
+  background: #0c1216;
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  padding: 16px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 14px;
+  word-spacing: 8px;
+}
+
+.lock-ack { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-dim); margin-bottom: 14px; text-align: left; }
+
+.disclaimer-scroll {
+  max-height: 50vh;
+  overflow-y: auto;
+  text-align: left;
+  color: var(--text-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding-right: 6px;
+  margin-bottom: 16px;
+}
+.disclaimer-scroll p { margin: 0 0 12px; }
+.disclaimer-scroll strong { color: var(--text); }
+
 /* Print */
 @media print {
   #appHeader, #appFooter, .sidebar, .segment-toolbar, .btn, .crud-form, .profile-form, .inline-add-form { display: none !important; }

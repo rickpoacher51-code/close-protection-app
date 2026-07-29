@@ -63,6 +63,27 @@ CP.storage = {
     return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   },
 
+  // --- Global (non-operation-scoped) storage, for things like app lock config
+  // that must apply regardless of which operation is currently open ---
+
+  loadGlobal: function (key, fallback) {
+    try {
+      var raw = localStorage.getItem(CP.PREFIX + key);
+      if (raw === null) return fallback;
+      return JSON.parse(raw);
+    } catch (e) {
+      return fallback;
+    }
+  },
+
+  saveGlobal: function (key, value) {
+    localStorage.setItem(CP.PREFIX + key, JSON.stringify(value));
+  },
+
+  removeGlobal: function (key) {
+    localStorage.removeItem(CP.PREFIX + key);
+  },
+
   // --- Operations (separate "pages" of data you can switch between) ---
 
   getOperations: function () {

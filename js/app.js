@@ -59,13 +59,17 @@ function cpWireHeader() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  cpRenderOpLabel();
-  cpRenderNav();
-  cpRenderContent();
-  cpWireHeader();
-  window.addEventListener('hashchange', function () {
-    cpRenderContent();
-    cpRenderNav();
+  CP.disclaimer.checkAndRun(function () {
+    CP.lock.checkAndRun(function () {
+      cpRenderOpLabel();
+      cpRenderNav();
+      cpRenderContent();
+      cpWireHeader();
+      window.addEventListener('hashchange', function () {
+        cpRenderContent();
+        cpRenderNav();
+      });
+    });
   });
 });
 
