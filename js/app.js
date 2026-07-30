@@ -58,19 +58,19 @@ function cpWireHeader() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  CP.disclaimer.checkAndRun(function () {
-    CP.lock.checkAndRun(function () {
-      cpRenderOpLabel();
-      cpRenderNav();
-      cpRenderContent();
-      cpWireHeader();
-      window.addEventListener('hashchange', function () {
-        cpRenderContent();
-        cpRenderNav();
-      });
-    });
+function cpBootApp() {
+  cpRenderOpLabel();
+  cpRenderNav();
+  cpRenderContent();
+  cpWireHeader();
+  window.addEventListener('hashchange', function () {
+    cpRenderContent();
+    cpRenderNav();
   });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  CP.securityGate.boot(cpBootApp);
 });
 
 if ('serviceWorker' in navigator) {
