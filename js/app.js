@@ -80,7 +80,9 @@ function cpBootApp() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  CP.securityGate.boot(cpBootApp);
+  CP.securityGate.boot(function () {
+    CP.disclaimerGate.boot(cpBootApp);
+  });
 });
 
 if ('serviceWorker' in navigator) {
