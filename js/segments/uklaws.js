@@ -49,8 +49,7 @@ CP.registerSegment({
       'Laws, case law, and licensing requirements change — verify against current legislation and take advice from a solicitor ' +
       'or your company’s legal advisor before making operational or employment decisions.</div>' +
       '<div class="law-list">' + accordionHtml + '</div>' +
-      '<section class="panel"><h2>Unit Notes</h2><div id="uklawsNotes"></div></section>' +
-      '<section class="panel"><h2>App Terms & Disclaimer</h2><div id="disclaimerRecord"></div></section>';
+      '<section class="panel"><h2>Unit Notes</h2><div id="uklawsNotes"></div></section>';
 
     CP.ui.profileForm(container.querySelector('#uklawsNotes'), {
       storageKey: 'uklawsNotes',
@@ -58,14 +57,5 @@ CP.registerSegment({
         { key: 'notes', label: 'Notes (e.g. company policy references, licence renewal dates)', type: 'textarea' }
       ]
     });
-
-    var acceptance = CP.disclaimer.getAcceptance();
-    var recordHtml = acceptance
-      ? '<p class="hint">Accepted on this device: <strong>' + CP.ui.escapeHtml(new Date(acceptance.acceptedAt).toLocaleString()) +
-        '</strong> (version ' + CP.ui.escapeHtml(acceptance.version) + ')</p>'
-      : '<p class="hint">Not yet recorded on this device.</p>';
-    container.querySelector('#disclaimerRecord').innerHTML =
-      recordHtml + '<details class="law-item"><summary>View full text</summary><div class="disclaimer-scroll" style="max-height:none;">' +
-      CP.disclaimer.HTML + '</div></details>';
   }
 });

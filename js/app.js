@@ -21,6 +21,16 @@ function cpRenderContent() {
   document.title = 'CP Ops — ' + seg.label;
 }
 
+function cpSafeRenderContent() {
+  try {
+    cpRenderContent();
+  } catch (e) {
+    console.error('cpRenderContent failed for segment:', cpCurrentKey(), e);
+    document.getElementById('content').innerHTML =
+      '<p style="padding:20px;color:#e07a5f;">This section failed to load. Check the browser console for details.</p>';
+  }
+}
+
 function cpRenderOpLabel() {
   var label = document.getElementById('currentOpLabel');
   var ops = CP.storage.getOperations();
@@ -58,18 +68,20 @@ function cpWireHeader() {
   });
 }
 
+function cpBootApp() {
+  cpWireHeader();
+  window.addEventListener('hashchange', function () {
+    cpSafeRenderContent();
+    cpRenderNav();
+  });
+  cpRenderOpLabel();
+  cpRenderNav();
+  cpSafeRenderContent();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
-  CP.disclaimer.checkAndRun(function () {
-    CP.lock.checkAndRun(function () {
-      cpRenderOpLabel();
-      cpRenderNav();
-      cpRenderContent();
-      cpWireHeader();
-      window.addEventListener('hashchange', function () {
-        cpRenderContent();
-        cpRenderNav();
-      });
-    });
+  CP.securityGate.boot(function () {
+    CP.disclaimerGate.boot(cpBootApp);
   });
 });
 

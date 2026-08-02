@@ -62,12 +62,10 @@ CP.registerSegment({
       '<p class="hint">Each operation has its own completely separate data — team, routes, medical, plans, everything. ' +
       'Start a new one to begin a fresh page without losing the last one; switch back to it anytime.</p>' +
       '<div id="opsSwitcher"></div></section>' +
-      '<section class="panel"><h2>App Lock (PIN Security)</h2><div id="lockSettings"></div></section>' +
       '<section class="panel"><h2>Operation Details</h2><div id="opInfo"></div></section>' +
       '<section class="panel"><h2>Quick Access</h2><div id="quickGrid" class="quick-grid"></div></section>';
 
     cpRenderOpsSwitcher(container.querySelector('#opsSwitcher'));
-    CP.lock.renderSettings(container.querySelector('#lockSettings'));
 
     CP.ui.profileForm(container.querySelector('#opInfo'), {
       storageKey: 'opInfo',
