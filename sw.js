@@ -1,4 +1,4 @@
-var CACHE_NAME = 'cp-ops-v2';
+var CACHE_NAME = 'cp-ops-v3';
 
 var PRECACHE_URLS = [
   './',
@@ -21,6 +21,7 @@ var PRECACHE_URLS = [
   './js/segments/threatZones.js',
   './js/segments/travelDocs.js',
   './js/segments/uklaws.js',
+  './js/segments/admin.js',
   './js/segments/exportDoc.js',
   './icons/icon-192.png',
   './icons/icon-512.png',

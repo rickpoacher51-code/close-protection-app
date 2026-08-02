@@ -86,6 +86,20 @@ CP.registerSegment({
       }
     });
 
+    var adminLists = [
+      { key: 'adminMedReminders', dateKey: 'dueDate' },
+      { key: 'adminVehicleServices', dateKey: 'dueDate' },
+      { key: 'adminMedKitExpiry', dateKey: 'expiryDate' },
+      { key: 'adminTeamCerts', dateKey: 'expiryDate' }
+    ];
+    var adminNeedsAttention = adminLists.reduce(function (sum, l) {
+      var items = CP.storage.load(l.key, []);
+      return sum + items.filter(function (rec) {
+        var status = CP.ui.expiryStatus(rec[l.dateKey]);
+        return status === 'Expired' || status === 'Expiring Soon';
+      }).length;
+    }, 0);
+
     var counts = {
       team: CP.storage.load('team', []).length,
       medical: CP.storage.load('casevacHospitals', []).length,
@@ -108,6 +122,7 @@ CP.registerSegment({
       { key: 'actionsOn', label: 'Actions On', desc: counts.actionsOn + ' drill(s)' },
       { key: 'threatZones', label: 'Global Threats & Extraction', desc: counts.threatZones + ' region(s) logged' },
       { key: 'travelDocs', label: 'Travel Documentation', desc: counts.travelDocs + ' countr(y/ies) logged' },
+      { key: 'admin', label: 'Admin', desc: adminNeedsAttention > 0 ? adminNeedsAttention + ' item(s) need attention' : 'All expiries in date' },
       { key: 'uklaws', label: 'UK Laws', desc: 'Reference' },
       { key: 'export', label: 'Export Document', desc: 'Share a Word-compatible copy' }
     ];

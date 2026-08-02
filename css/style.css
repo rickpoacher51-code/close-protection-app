@@ -240,10 +240,10 @@ tr:hover td { background: #131b22; }
   background: #2a333c;
   color: var(--text-dim);
 }
-.badge-low, .badge-done, .badge-yes { background: rgba(61,139,95,0.2); color: #6fcf97; }
-.badge-medium, .badge-in-progress, .badge-day { background: rgba(201,154,62,0.2); color: #e0b45c; }
+.badge-low, .badge-done, .badge-yes, .badge-in-date { background: rgba(61,139,95,0.2); color: #6fcf97; }
+.badge-medium, .badge-in-progress, .badge-day, .badge-expiring-soon { background: rgba(201,154,62,0.2); color: #e0b45c; }
 .badge-high, .badge-night { background: rgba(192,122,43,0.2); color: #e2984f; }
-.badge-extreme, .badge-critical, .badge-attack, .badge-no { background: rgba(192,57,43,0.2); color: #e57368; }
+.badge-extreme, .badge-critical, .badge-attack, .badge-no, .badge-expired { background: rgba(192,57,43,0.2); color: #e57368; }
 .badge-primary { background: rgba(201,154,62,0.25); color: #e0b45c; }
 .badge-alternate { background: #2a333c; color: var(--text-dim); }
 .badge-pending { background: #2a333c; color: var(--text-dim); }

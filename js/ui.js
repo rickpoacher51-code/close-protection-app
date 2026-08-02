@@ -13,6 +13,20 @@ CP.ui.COUNTRY_CODES = [
   '+52 (Mexico)', '+57 (Colombia)', '+54 (Argentina)', 'Other'
 ];
 
+// Computes a human status from a YYYY-MM-DD date: 'Expired', 'Expiring Soon' (within warnDays), or 'In Date'.
+CP.ui.expiryStatus = function (dateStr, warnDays) {
+  if (!dateStr) return '';
+  warnDays = warnDays || 30;
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var due = new Date(dateStr + 'T00:00:00');
+  if (isNaN(due.getTime())) return '';
+  var diffDays = Math.round((due - today) / 86400000);
+  if (diffDays < 0) return 'Expired';
+  if (diffDays <= warnDays) return 'Expiring Soon';
+  return 'In Date';
+};
+
 CP.ui.escapeHtml = function (str) {
   if (str === undefined || str === null) return '';
   return String(str)
@@ -103,9 +117,16 @@ CP.ui.crud = function (container, opts) {
   function load() { return CP.storage.load(storageKey, []); }
   function persist(list) { CP.storage.save(storageKey, list); }
 
-  function fieldLabel(key) {
+  // Looks up metadata for either a real form field or a derived (computed, read-only) column.
+  function fieldMeta(key) {
     var f = fields.filter(function (x) { return x.key === key; })[0];
-    return f ? f.label : key;
+    if (f) return f;
+    return (opts.derivedColumns || []).filter(function (x) { return x.key === key; })[0] || null;
+  }
+
+  function fieldLabel(key) {
+    var m = fieldMeta(key);
+    return m ? m.label : key;
   }
 
   function applyFilter(list) {
@@ -147,10 +168,11 @@ CP.ui.crud = function (container, opts) {
     if (!list.length) return '<p class="empty-msg">' + (opts.emptyMessage || 'No records yet.') + '</p>';
     var head = opts.columns.map(function (c) { return '<th>' + CP.ui.escapeHtml(fieldLabel(c)) + '</th>'; }).join('');
     var rows = list.map(function (rec) {
+      var displayRec = opts.deriveFields ? Object.assign({}, rec, opts.deriveFields(rec)) : rec;
       var tds = opts.columns.map(function (c) {
-        var f = fields.filter(function (x) { return x.key === c; })[0];
-        var val = rec[c];
-        if (f && f.badge && val) {
+        var m = fieldMeta(c);
+        var val = displayRec[c];
+        if (m && m.badge && val) {
           return '<td><span class="badge badge-' + CP.ui.slug(val) + '">' + CP.ui.escapeHtml(val) + '</span></td>';
         }
         return '<td>' + CP.ui.escapeHtml(val) + '</td>';
