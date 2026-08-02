@@ -80,8 +80,8 @@ function cpBootApp() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  CP.securityGate.boot(function () {
-    CP.disclaimerGate.boot(cpBootApp);
+  CP.disclaimer.checkAndRun(function () {
+    CP.lock.checkAndRun(cpBootApp);
   });
 });
 
