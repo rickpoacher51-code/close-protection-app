@@ -182,4 +182,6 @@ CP.storage = {
   }
 };
 
+CP.storage.OPERATION_DATA_KEYS = CP_KNOWN_DATA_KEYS;
+
 cpMigrateToOperationsIfNeeded();

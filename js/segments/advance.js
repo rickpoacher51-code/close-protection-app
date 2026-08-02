@@ -15,6 +15,7 @@ CP.registerSegment({
       fields: [
         { key: 'venueName', label: 'Venue Name', required: true },
         { key: 'address', label: 'Address', required: true },
+        { key: 'w3w', label: 'what3words (optional)', placeholder: '///filled.count.soap' },
         { key: 'eventDate', label: 'Event Date', type: 'date' },
         { key: 'contactName', label: 'Venue Contact Name' },
         { key: 'contactPhone', label: 'Venue Contact Phone', type: 'tel' },
@@ -26,7 +27,12 @@ CP.registerSegment({
       ],
       columns: ['venueName', 'address', 'eventDate', 'contactName'],
       emptyMessage: 'No venues added yet.',
-      rowLinks: function (rec) { return rec.address ? [{ label: 'Map', url: CP.ui.mapsLink(rec.address) }] : []; }
+      rowLinks: function (rec) {
+        var links = [];
+        if (rec.address) links.push({ label: 'Map', url: CP.ui.mapsLink(rec.address) });
+        if (rec.w3w) links.push({ label: 'what3words', url: CP.ui.w3wLink(rec.w3w) });
+        return links;
+      }
     });
 
     CP.ui.crud(container.querySelector('#advComms'), {

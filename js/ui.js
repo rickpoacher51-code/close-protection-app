@@ -56,6 +56,13 @@ CP.ui.mapsDirLink = function (origin, destination) {
   return 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(origin || '') + '&destination=' + encodeURIComponent(destination || '');
 };
 
+// Builds a what3words.com link from a "///word.word.word" or "word.word.word" address.
+CP.ui.w3wLink = function (words) {
+  var clean = String(words || '').trim().replace(/^\/+/, '');
+  if (!clean) return null;
+  return 'https://what3words.com/' + encodeURIComponent(clean);
+};
+
 // Best-effort slug for a country name in GOV.UK's URL style (lowercase, hyphenated).
 // Correct for most common country names, but GOV.UK's actual slug differs for a
 // number of countries (e.g. "Ivory Coast" -> "cote-divoire"). Always paired with
@@ -174,6 +181,9 @@ CP.ui.crud = function (container, opts) {
         var val = displayRec[c];
         if (m && m.badge && val) {
           return '<td><span class="badge badge-' + CP.ui.slug(val) + '">' + CP.ui.escapeHtml(val) + '</span></td>';
+        }
+        if (m && m.type === 'tel' && val) {
+          return '<td><a href="tel:' + CP.ui.escapeHtml(String(val).replace(/\s+/g, '')) + '">' + CP.ui.escapeHtml(val) + '</a></td>';
         }
         return '<td>' + CP.ui.escapeHtml(val) + '</td>';
       }).join('');

@@ -108,13 +108,19 @@ CP.registerSegment({
       fields: [
         { key: 'name', label: 'Hospital Name', required: true },
         { key: 'address', label: 'Address', required: true },
+        { key: 'w3w', label: 'what3words (optional)', placeholder: '///filled.count.soap' },
         { key: 'phone', label: 'Phone', type: 'tel' },
         { key: 'travelTime', label: 'Travel Time from Base' },
         { key: 'notes', label: 'Notes', type: 'textarea' }
       ],
       columns: ['name', 'address', 'travelTime', 'phone'],
       emptyMessage: 'No hospitals added yet.',
-      rowLinks: function (rec) { return rec.address ? [{ label: 'Map', url: CP.ui.mapsLink(rec.address) }] : []; }
+      rowLinks: function (rec) {
+        var links = [];
+        if (rec.address) links.push({ label: 'Map', url: CP.ui.mapsLink(rec.address) });
+        if (rec.w3w) links.push({ label: 'what3words', url: CP.ui.w3wLink(rec.w3w) });
+        return links;
+      }
     });
 
     CP.ui.crud(container.querySelector('#medMedLegality'), {

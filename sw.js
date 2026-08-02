@@ -1,4 +1,4 @@
-var CACHE_NAME = 'cp-ops-v3';
+var CACHE_NAME = 'cp-ops-v4';
 
 var PRECACHE_URLS = [
   './',
@@ -9,6 +9,7 @@ var PRECACHE_URLS = [
   './js/ui.js',
   './js/disclaimer.js',
   './js/lock.js',
+  './js/share.js',
   './js/app.js',
   './js/segments/dashboard.js',
   './js/segments/team.js',

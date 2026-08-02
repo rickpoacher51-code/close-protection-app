@@ -37,13 +37,19 @@ CP.registerSegment({
         { key: 'name', label: 'Location Name', required: true },
         { key: 'type', label: 'Type', type: 'select', options: ['Embassy / Consulate', 'Designated Safe House', 'Friendly Military Base', 'Hotel Safe Room', 'Other'], badge: true },
         { key: 'address', label: 'Address' },
+        { key: 'w3w', label: 'what3words (optional)', placeholder: '///filled.count.soap' },
         { key: 'phone', label: 'Phone', type: 'tel' },
         { key: 'contactName', label: 'Contact Name' },
         { key: 'notes', label: 'Notes', type: 'textarea' }
       ],
       columns: ['name', 'type', 'address', 'phone'],
       emptyMessage: 'No safe havens added yet.',
-      rowLinks: function (rec) { return rec.address ? [{ label: 'Map', url: CP.ui.mapsLink(rec.address) }] : []; }
+      rowLinks: function (rec) {
+        var links = [];
+        if (rec.address) links.push({ label: 'Map', url: CP.ui.mapsLink(rec.address) });
+        if (rec.w3w) links.push({ label: 'what3words', url: CP.ui.w3wLink(rec.w3w) });
+        return links;
+      }
     });
 
     CP.ui.crud(container.querySelector('#extractionPoints'), {
@@ -53,12 +59,18 @@ CP.registerSegment({
         { key: 'name', label: 'Name', required: true },
         { key: 'type', label: 'Type', type: 'select', options: ['International Airport', 'Regional Airport', 'Heliport / LZ', 'Seaport', 'Land Border Crossing', 'Rail'], badge: true },
         { key: 'address', label: 'Address' },
+        { key: 'w3w', label: 'what3words (optional)', placeholder: '///filled.count.soap' },
         { key: 'distanceFromBase', label: 'Distance / Time from Base' },
         { key: 'notes', label: 'Access Notes / Restrictions', type: 'textarea' }
       ],
       columns: ['name', 'type', 'address', 'distanceFromBase'],
       emptyMessage: 'No extraction points added yet.',
-      rowLinks: function (rec) { return rec.address ? [{ label: 'Map', url: CP.ui.mapsLink(rec.address) }] : []; }
+      rowLinks: function (rec) {
+        var links = [];
+        if (rec.address) links.push({ label: 'Map', url: CP.ui.mapsLink(rec.address) });
+        if (rec.w3w) links.push({ label: 'what3words', url: CP.ui.w3wLink(rec.w3w) });
+        return links;
+      }
     });
   }
 });

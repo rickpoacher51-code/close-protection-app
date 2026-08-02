@@ -89,6 +89,74 @@ function cpDownloadOperationDocument() {
   URL.revokeObjectURL(url);
 }
 
+function cpRenderShareOut(container) {
+  container.innerHTML =
+    '<p class="hint">Encrypts everything in the current operation into one file, locked with a PIN you choose. ' +
+    'Send the file to a teammate by any channel (email, AirDrop, Signal) — without the PIN it’s unreadable.</p>' +
+    '<form class="inline-add-form" id="shareOutForm">' +
+    '<input type="text" id="shareOutPin" placeholder="Set a share PIN (min 4 characters)" autocomplete="off">' +
+    '<button type="submit" class="btn btn-small btn-primary">Generate Encrypted File</button>' +
+    '</form><div class="lock-error" id="shareOutError"></div>';
+
+  container.querySelector('#shareOutForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pin = container.querySelector('#shareOutPin').value;
+    var err = container.querySelector('#shareOutError');
+    err.textContent = '';
+    if (pin.length < 4) { err.textContent = 'PIN must be at least 4 characters.'; return; }
+
+    var payload = CP.share.buildOperationPayload();
+    CP.share.encrypt(payload, pin).then(function (envelope) {
+      var opInfo = CP.storage.load('opInfo', {});
+      var namePart = (opInfo.operationName || 'operation').toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'operation';
+      CP.share.downloadEnvelope(envelope, namePart + '-share-' + new Date().toISOString().slice(0, 10));
+      container.querySelector('#shareOutPin').value = '';
+    }).catch(function (e) {
+      err.textContent = 'Could not generate the share file: ' + e.message;
+    });
+  });
+}
+
+function cpRenderShareIn(container) {
+  container.innerHTML =
+    '<p class="hint">Import a .cpshare file from a teammate. It’s added as a brand-new operation — your own operations are left untouched.</p>' +
+    '<form class="inline-add-form" id="shareInForm">' +
+    '<input type="file" id="shareInFile" accept=".cpshare,application/octet-stream">' +
+    '<input type="text" id="shareInPin" placeholder="Enter their share PIN" autocomplete="off">' +
+    '<button type="submit" class="btn btn-small btn-primary">Import</button>' +
+    '</form><div class="lock-error" id="shareInError"></div>';
+
+  container.querySelector('#shareInForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var fileInput = container.querySelector('#shareInFile');
+    var pin = container.querySelector('#shareInPin').value;
+    var err = container.querySelector('#shareInError');
+    err.textContent = '';
+    var file = fileInput.files[0];
+    if (!file) { err.textContent = 'Choose a .cpshare file first.'; return; }
+
+    var reader = new FileReader();
+    reader.onload = function () {
+      var envelope;
+      try {
+        envelope = JSON.parse(reader.result);
+      } catch (parseErr) {
+        err.textContent = 'That doesn’t look like a valid share file.';
+        return;
+      }
+      CP.share.decrypt(envelope, pin).then(function (payload) {
+        CP.share.importAsNewOperation(payload);
+        alert('Imported as a new operation. Switch to it from Dashboard → Operations → Viewing.');
+        fileInput.value = '';
+        container.querySelector('#shareInPin').value = '';
+      }).catch(function () {
+        err.textContent = 'Incorrect PIN, or the file is corrupted.';
+      });
+    };
+    reader.readAsText(file);
+  });
+}
+
 CP.registerSegment({
   key: 'export',
   label: 'Export Document',
@@ -100,8 +168,12 @@ CP.registerSegment({
       'medical, routes, plans, logs, and reference lists. Share the downloaded file by email or drive; anyone can open and edit their ' +
       'own copy in Microsoft Word, Google Docs, or Pages. This is a snapshot, not live sync — edits others make in the document ' +
       'won’t come back into this app automatically.</p>' +
-      '<div class="segment-toolbar"><button class="btn btn-primary" id="exportDocBtn">Generate & Download Document</button></div>';
+      '<div class="segment-toolbar"><button class="btn btn-primary" id="exportDocBtn">Generate & Download Document</button></div>' +
+      '<section class="panel"><h2>Share This Operation with Your Team</h2><div id="shareOut"></div></section>' +
+      '<section class="panel"><h2>Import Shared Data from a Teammate</h2><div id="shareIn"></div></section>';
 
     container.querySelector('#exportDocBtn').addEventListener('click', cpDownloadOperationDocument);
+    cpRenderShareOut(container.querySelector('#shareOut'));
+    cpRenderShareIn(container.querySelector('#shareIn'));
   }
 });
