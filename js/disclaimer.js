@@ -1,8 +1,8 @@
 window.CP = window.CP || {};
 CP.disclaimer = {};
 
-CP.disclaimer.VERSION = '1.0';
-CP.disclaimer.VERSION_LABEL = 'v1.0 (29 July 2026)';
+CP.disclaimer.VERSION = '1.1';
+CP.disclaimer.VERSION_LABEL = 'v1.1 (17 August 2026)';
 
 CP.disclaimer.HTML =
   '<p>By using the App, you acknowledge and agree that:</p>' +
@@ -14,14 +14,21 @@ CP.disclaimer.HTML =
   'All operational plans, risk assessments, and decisions remain the sole responsibility of the user and their organisation.</p>' +
   '<p><strong>User responsibility.</strong> The user is solely responsible for independently verifying all information within the App ' +
   'before relying on it in any operational context, and for exercising independent professional judgement at all times.</p>' +
-  '<p><strong>Data handling.</strong> The App stores data locally on the user’s device. RD Anzen Ltd is not responsible for loss, ' +
+  '<p><strong>Data handling.</strong> The App operates entirely on-device. All data you enter is stored locally on your device only; ' +
+  'RD Anzen Ltd does not receive, transmit, store centrally, or have any access to it. RD Anzen Ltd is not responsible for loss, ' +
   'corruption, unauthorised access, or disclosure of data resulting from device loss, theft, failure, or user error.</p>' +
   '<p><strong>Limitation of liability.</strong> To the maximum extent permitted by law, RD Anzen Ltd excludes all liability for any ' +
   'indirect, incidental, special, or consequential loss or damage — including loss of data, loss of profit, or business interruption — ' +
-  'arising from use of, or inability to use, the App.</p>' +
+  'arising from use of, or inability to use, the App. Except in respect of liability that cannot lawfully be excluded or limited, RD Anzen ' +
+  'Ltd\u2019s total liability to you for any direct loss arising from your use of the App shall not exceed [\u00a3 — cap to be set] in aggregate ' +
+  'in any 12-month period.</p>' +
   '<p><strong>Statutory rights preserved.</strong> Nothing in this disclaimer excludes or limits liability for death or personal injury ' +
   'caused by negligence, fraud or fraudulent misrepresentation, or any other liability which cannot lawfully be excluded or limited ' +
   'under the laws of England and Wales.</p>' +
+  '<p><strong>Governing law.</strong> This disclaimer, and any dispute or claim arising out of or in connection with it or your use of the ' +
+  'App, is governed by the laws of England and Wales. The courts of England and Wales have exclusive jurisdiction.</p>' +
+  '<p><strong>About the provider.</strong> The App is provided by RD Anzen Ltd, a company registered in England and Wales ' +
+  '(company number 08957578).</p>' +
   '<p>By continuing to use the App, you confirm that you have read, understood, and accepted this disclaimer.</p>' +
   '<p>RD Anzen Ltd — ' + CP.disclaimer.VERSION_LABEL + '</p>';
 
