@@ -1,0 +1,1752 @@
+diff --git a/beta/css/style.css b/beta/css/style.css
+index c498809..4f56537 100644
+--- a/beta/css/style.css
++++ b/beta/css/style.css
+@@ -74,6 +74,8 @@ html, body {
+   background: #10151a;
+   border-top: 1px solid var(--panel-border);
+ }
++#appFooter a { color: var(--text-dim); text-decoration: underline; }
++#appFooter a:hover { color: var(--accent); }
+ 
+ .sidebar {
+   width: 230px;
+@@ -424,3 +426,79 @@ body[data-op-status="complete"] .content { opacity: 0.92; }
+   color: var(--text);
+ }
+ .mobile-quick-bar a:active { background: #1b232b; }
++
++/* Lock / disclaimer full-screen overlays */
++.lock-overlay {
++  position: fixed;
++  inset: 0;
++  z-index: 9999;
++  background: var(--bg);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  padding: 20px;
++}
++
++.lock-card {
++  background: var(--panel);
++  border: 1px solid var(--panel-border);
++  border-radius: var(--radius);
++  padding: 28px;
++  width: 100%;
++  max-width: 380px;
++  text-align: center;
++}
++
++.lock-card.lock-card-wide { max-width: 640px; text-align: left; }
++
++.lock-emblem img { width: 64px; height: 64px; border-radius: var(--radius); margin-bottom: 12px; }
++
++.lock-card h2 { margin: 0 0 14px; font-size: 18px; }
++
++.lock-card form { display: flex; flex-direction: column; gap: 12px; }
++
++.lock-card input[type="password"], .lock-card input[type="text"] {
++  background: #0c1216;
++  border: 1px solid var(--panel-border);
++  color: var(--text);
++  padding: 12px;
++  border-radius: var(--radius);
++  font-size: 20px;
++  text-align: center;
++  letter-spacing: 4px;
++}
++
++.lock-card input[type="text"] { font-size: 15px; letter-spacing: normal; }
++
++.lock-card a { display: inline-block; margin-top: 14px; color: var(--text-dim); font-size: 13px; }
++
++.lock-error { color: #e57368; font-size: 13px; min-height: 16px; }
++
++.lock-phrase {
++  background: #0c1216;
++  border: 1px solid var(--accent-dim);
++  border-radius: var(--radius);
++  padding: 16px;
++  font-size: 17px;
++  font-weight: 600;
++  letter-spacing: 1px;
++  color: var(--accent);
++  margin-bottom: 14px;
++  word-spacing: 8px;
++}
++
++.lock-ack { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-dim); margin-bottom: 14px; text-align: left; }
++
++.disclaimer-scroll {
++  max-height: 50vh;
++  overflow-y: auto;
++  text-align: left;
++  color: var(--text-dim);
++  font-size: 13.5px;
++  line-height: 1.6;
++  padding-right: 6px;
++  margin-bottom: 16px;
++}
++.disclaimer-scroll p { margin: 0 0 12px; }
++.disclaimer-scroll strong { color: var(--text); }
++.disclaimer-scroll a { display: inline; margin-top: 0; color: var(--accent); font-size: inherit; }
+diff --git a/beta/index.html b/beta/index.html
+index 2ec980e..29fc0a7 100644
+--- a/beta/index.html
++++ b/beta/index.html
+@@ -2,6 +2,8 @@
+ <html lang="en">
+ <head>
+ <meta charset="UTF-8">
++<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'">
++<meta name="referrer" content="no-referrer">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Close Protection Ops</title>
+ <link rel="stylesheet" href="css/style.css">
+@@ -46,7 +48,7 @@
+     <nav id="sidebar" class="sidebar"></nav>
+     <main id="content" class="content"></main>
+   </div>
+-  <footer id="appFooter">Close Protection Ops &mdash; built by RDanzen Ltd</footer>
++  <footer id="appFooter">Close Protection Ops (beta) &mdash; built by RD Anzen Ltd (company no. 08957578) &middot; <a href="../privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a> &middot; <a href="mailto:Rick@RDAnzen.co.uk">Rick@RDAnzen.co.uk</a></footer>
+   <nav id="mobileQuickBar" class="mobile-quick-bar">
+     <a href="#team" title="Team"><span>👥</span></a>
+     <a href="#medical" title="Medical"><span>🩺</span></a>
+@@ -58,6 +60,7 @@
+ 
+ <script src="js/storage.js"></script>
+ <script src="js/ui.js"></script>
++<script src="js/disclaimer.js"></script>
+ <script src="js/segments/dashboard.js"></script>
+ <script src="js/segments/team.js"></script>
+ <script src="js/segments/commsTree.js"></script>
+diff --git a/beta/js/app.js b/beta/js/app.js
+index 99f2346..ceeeb74 100644
+--- a/beta/js/app.js
++++ b/beta/js/app.js
+@@ -39,7 +39,7 @@ function cpRenderOpSwitcher() {
+   var currentId = CP.ops.current();
+ 
+   select.innerHTML = ops.map(function (o) {
+-    return '<option value="' + o.id + '"' + (o.id === currentId ? ' selected' : '') + '>' + CP.ui.escapeHtml(o.name) + '</option>';
++    return '<option value="' + CP.ui.escapeHtml(o.id) + '"' + (o.id === currentId ? ' selected' : '') + '>' + CP.ui.escapeHtml(o.name) + '</option>';
+   }).join('');
+ 
+   var currentOp = CP.ops.get(currentId);
+@@ -71,9 +71,14 @@ function cpWireHeader() {
+     }
+     CP.storage.importAll(file, function (err, result) {
+       if (err) {
+-        alert('Import failed: file is not valid JSON.');
++        alert(err.message === 'production backup'
++          ? 'Import failed: that file is a backup from the main (production) app. Import it there, not in the beta.'
++          : 'Import failed: the file is not a valid Close Protection Ops beta backup.');
+       } else {
+-        alert('Import complete' + (result && result.opName ? ' — added operation "' + result.opName + '"' : '') + '.');
++        alert('Import complete' + (result && result.opName ? ' — added operation "' + result.opName + '"' : '') +
++          ': ' + result.imported + ' section(s) restored' +
++          (result.skipped ? ', ' + result.skipped + ' skipped (unrecognised or unsafe)' : '') +
++          (result.sanitized ? ', ' + result.sanitized + ' value(s) cleaned' : '') + '.');
+         location.reload();
+       }
+       importInput.value = '';
+@@ -104,8 +109,11 @@ function cpWireHeader() {
+   });
+ }
+ 
+-document.addEventListener('DOMContentLoaded', function () {
++function cpBootApp() {
+   CP.ops.current(); // triggers one-time legacy-data migration if needed
++  if (navigator.storage && navigator.storage.persist) {
++    navigator.storage.persist().catch(function () { /* best effort */ });
++  }
+   cpRenderOpSwitcher();
+   cpRenderNav();
+   cpRenderContent();
+@@ -114,6 +122,11 @@ document.addEventListener('DOMContentLoaded', function () {
+     cpRenderContent();
+     cpRenderNav();
+   });
++}
++
++document.addEventListener('DOMContentLoaded', function () {
++  // Terms & disclaimer gate (same wording and version as the main app).
++  CP.disclaimer.checkAndRun(cpBootApp);
+ });
+ 
+ if ('serviceWorker' in navigator) {
+diff --git a/beta/js/disclaimer.js b/beta/js/disclaimer.js
+new file mode 100644
+index 0000000..9c3873a
+--- /dev/null
++++ b/beta/js/disclaimer.js
+@@ -0,0 +1,87 @@
++window.CP = window.CP || {};
++CP.disclaimer = {};
++
++CP.disclaimer.VERSION = '1.2';
++CP.disclaimer.VERSION_LABEL = 'v1.2 (20 September 2026)';
++// Where the Privacy Policy lives relative to the page that shows this text (beta overrides this).
++CP.disclaimer.PRIVACY_URL = '../privacy.html';
++
++CP.disclaimer.HTML =
++  '<p>By using the App, you acknowledge and agree that:</p>' +
++  '<p><strong>No warranty of accuracy.</strong> The App is provided “as is” and “as available.” RD Anzen Ltd makes no representation ' +
++  'or warranty, express or implied, as to the accuracy, completeness, reliability, or currency of any information entered, stored, ' +
++  'generated, or displayed by the App, including but not limited to routes, venue data, contact details, medical information, or ' +
++  'communications plans.</p>' +
++  '<p><strong>Not professional advice.</strong> Nothing in the App constitutes security, medical, legal, or professional advice. ' +
++  'All operational plans, risk assessments, and decisions remain the sole responsibility of the user and their organisation.</p>' +
++  '<p><strong>Business use.</strong> The App is intended for use by security professionals and organisations in the course of their ' +
++  'business or profession. It is not offered to consumers.</p>' +
++  '<p><strong>User responsibility.</strong> The user is solely responsible for independently verifying all information within the App ' +
++  'before relying on it in any operational context, and for exercising independent professional judgement at all times.</p>' +
++  '<p><strong>Data handling.</strong> The App operates entirely on-device. All data you enter is stored locally on your device only; ' +
++  'RD Anzen Ltd does not receive, transmit, store centrally, or have any access to it. RD Anzen Ltd is not responsible for loss, ' +
++  'corruption, unauthorised access, or disclosure of data resulting from device loss, theft, failure, or user error.</p>' +
++  '<p><strong>Limitation of liability.</strong> To the maximum extent permitted by law, RD Anzen Ltd excludes all liability for any ' +
++  'indirect, incidental, special, or consequential loss or damage — including loss of data, loss of profit, or business interruption — ' +
++  'arising from use of, or inability to use, the App. ' +
++  // TODO (solicitor): insert the agreed aggregate liability cap for direct loss here, then bump VERSION so users re-accept.
++  '</p>' +
++  '<p><strong>Statutory rights preserved.</strong> Nothing in this disclaimer excludes or limits liability for death or personal injury ' +
++  'caused by negligence, fraud or fraudulent misrepresentation, or any other liability which cannot lawfully be excluded or limited ' +
++  'under the laws of England and Wales.</p>' +
++  '<p><strong>Licence and ownership.</strong> RD Anzen Ltd grants you a limited, non-exclusive, non-transferable licence to use the App ' +
++  'for your own internal business purposes. The App, its design, and its built-in templates remain the property of RD Anzen Ltd (or its licensors). ' +
++  'Information you enter remains yours. You may not copy, resell, or reverse-engineer the App except as the law allows.</p>' +
++  '<p><strong>Third-party links.</strong> Some buttons open Google Maps, what3words or GOV.UK in your browser. The text in those links ' +
++  '(for example an address, a three-word address, or a country name) is sent to that site, which is not operated by RD Anzen Ltd and has its own terms ' +
++  'and privacy policy. RD Anzen Ltd is not responsible for their content or availability.</p>' +
++  '<p><strong>Your data and privacy.</strong> See the <a href="' + CP.disclaimer.PRIVACY_URL + '" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. ' +
++  'You are responsible for having a lawful basis to record other people’s personal data (including health information) in the App and for keeping backups and exports secure.</p>' +
++  '<p><strong>Changes.</strong> RD Anzen Ltd may update the App and this disclaimer. If the text changes materially you will be asked to accept it again.</p>' +
++  '<p><strong>Governing law.</strong> This disclaimer, and any dispute or claim arising out of or in connection with it or your use of the ' +
++  'App, is governed by the laws of England and Wales. The courts of England and Wales have exclusive jurisdiction.</p>' +
++  '<p><strong>About the provider.</strong> The App is provided by RD Anzen Ltd, a company registered in England and Wales ' +
++  '(company number 08957578).</p>' +
++  '<p>By continuing to use the App, you confirm that you have read, understood, and accepted this disclaimer.</p>' +
++  '<p>RD Anzen Ltd — ' + CP.disclaimer.VERSION_LABEL + '</p>';
++
++CP.disclaimer.getAcceptance = function () { return CP.storage.loadGlobal('disclaimerAcceptance', null); };
++
++// SHA-256 of the exact text shown, stored with the acceptance so a later dispute can show which wording was accepted.
++CP.disclaimer.textHash = function () {
++  if (!(window.crypto && crypto.subtle)) return Promise.resolve('');
++  var bytes = new TextEncoder().encode(CP.disclaimer.HTML);
++  return crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
++    return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
++  }).catch(function () { return ''; });
++};
++
++CP.disclaimer.isAccepted = function () {
++  var rec = CP.disclaimer.getAcceptance();
++  return !!(rec && rec.version === CP.disclaimer.VERSION);
++};
++
++CP.disclaimer.checkAndRun = function (onAccepted) {
++  if (CP.disclaimer.isAccepted()) { onAccepted(); return; }
++
++  var overlay = document.createElement('div');
++  overlay.id = 'disclaimerOverlay';
++  overlay.className = 'lock-overlay';
++  overlay.innerHTML =
++    '<div class="lock-card lock-card-wide">' +
++    '<h2>Terms & Disclaimer</h2>' +
++    '<div class="disclaimer-scroll">' + CP.disclaimer.HTML + '</div>' +
++    '<button type="button" class="btn btn-primary" id="disclaimerAcceptBtn">I have read and accept</button>' +
++    '</div>';
++  document.body.appendChild(overlay);
++
++  overlay.querySelector('#disclaimerAcceptBtn').addEventListener('click', function () {
++    var record = { version: CP.disclaimer.VERSION, acceptedAt: new Date().toISOString() };
++    CP.storage.saveGlobal('disclaimerAcceptance', record);
++    CP.disclaimer.textHash().then(function (hash) {
++      if (hash) { record.textSha256 = hash; CP.storage.saveGlobal('disclaimerAcceptance', record); }
++    });
++    overlay.remove();
++    onAccepted();
++  });
++};
+diff --git a/beta/js/segments/uklaws.js b/beta/js/segments/uklaws.js
+index 9c624f4..af54468 100644
+--- a/beta/js/segments/uklaws.js
++++ b/beta/js/segments/uklaws.js
+@@ -3,50 +3,73 @@ CP.registerSegment({
+   label: 'UK Laws',
+   icon: '⚖️',
+   render: function (container) {
++    // Each card carries a source link. "Last edited" is the date the wording was last changed in this app,
++    // NOT a statement that a lawyer has checked it - always verify against the linked source.
++    var LAWS_EDITED = '20 September 2026';
+     var sections = [
+       {
+         title: 'SIA Licensing — Private Security Industry Act 2001',
+-        body: 'Close protection work in the UK is a licensable activity under the Private Security Industry Act 2001. Operatives generally require a valid SIA Close Protection licence to work in a CP role for reward. Check licence validity and renewal dates for every team member before deployment.'
++        body: 'Close protection work in the UK is a licensable activity under the Private Security Industry Act 2001. Operatives generally require a valid SIA Close Protection licence to work in a CP role for reward. Check licence validity and renewal dates for every team member before deployment.',
++        src: 'https://www.legislation.gov.uk/ukpga/2001/12'
+       },
+       {
+-        title: 'Use of Force — Criminal Law Act 1967 s.3 & Common Law Self-Defence',
+-        body: 'Any force used to protect the principal, yourself, or others must be reasonable and proportionate in the circumstances as honestly believed at the time. This applies equally to self-defence, defence of another, and prevention of crime. Excessive or pre-emptive force is not protected. Document any use of force as soon as practicable after the event.'
++        title: 'Martyn’s Law — Terrorism (Protection of Premises) Act 2025',
++        body: 'Martyn’s Law places counter-terrorism duties on those responsible for qualifying public premises and events. Broadly, a “standard” tier (capacity around 200 to 799) requires basic preparedness — staff training, public protection procedures and simple measures — and an “enhanced” tier (capacity around 800+) adds a documented risk assessment, a senior individual and more substantial measures. The Security Industry Authority (SIA) is the regulator. The Act received Royal Assent on 3 April 2025 but its substantive duties are NOT yet in force: government has set an implementation period of at least 24 months from Royal Assent, and Home Office statutory guidance was published in April 2026. The date the duties commence will be set by regulations — check the current position with the Home Office / SIA before treating any venue or event as in or out of scope, and factor it into Event Security and Advance Party planning.',
++        src: 'https://www.gov.uk/government/publications/the-terrorism-protection-of-premises-act-2025/terrorism-protection-of-premises-act-2025-statutory-guidance'
++      },
++      {
++        title: 'Use of Force — Criminal Law Act 1967 s.3, Criminal Justice and Immigration Act 2008 s.76 & Common Law',
++        body: 'Force used to protect the principal, yourself or others, or to prevent crime, must be reasonable in the circumstances as you honestly believed them to be. You do not have to wait to be attacked before acting — a pre-emptive act can be lawful if it is reasonable on what you honestly believed was about to happen (R v Beckford [1988] AC 130) — but force that is excessive or disproportionate is not protected. A genuinely held mistaken belief can still count; a mistake caused by voluntary intoxication cannot be relied on (s.76). In the heat of the moment you are not expected to weigh the exact amount of force to a nicety, but you must be able to justify what you did afterwards. Document any use of force as soon as practicable after the event and take legal advice.',
++        src: 'https://www.legislation.gov.uk/ukpga/2008/4/section/76'
+       },
+       {
+         title: 'Firearms — Firearms Act 1968',
+-        body: 'UK close protection operatives are, with very limited exception, unarmed. Carrying a firearm without the relevant certificate/authority is a serious criminal offence. Any armed CP tasking in the UK requires specific lawful authority; this is not the default position for private CP work.'
++        body: 'UK close protection operatives are, with very limited exception, unarmed. Carrying a firearm without the relevant certificate/authority is a serious criminal offence. Any armed CP tasking in the UK requires specific lawful authority; this is not the default position for private CP work.',
++        src: 'https://www.legislation.gov.uk/ukpga/1968/27'
++      },
++      {
++        title: 'Weapons & Restricted Items — Firearms Act 1968 s.5, Prevention of Crime Act 1953, Criminal Justice Act 1988 s.139',
++        body: 'Incapacitant sprays containing CS or PAVA are prohibited weapons under s.5(1)(b) of the Firearms Act 1968; possession without authority is a serious offence and being a security operative is not an authority. Carrying an offensive weapon (an item made or adapted to cause injury, or carried with that intention — for example extendable batons or knuckledusters) in a public place without lawful authority or reasonable excuse is an offence under the Prevention of Crime Act 1953, and carrying a bladed or sharply pointed article in public without good reason is an offence under s.139 of the Criminal Justice Act 1988. Your job is not automatically accepted as a “reasonable excuse”. Keep any kit list to lawful items and check the law for every country you travel to.',
++        src: 'https://www.legislation.gov.uk/ukpga/Eliz2/1-2/14'
+       },
+       {
+         title: 'Powers of Arrest / Detention — PACE 1984',
+-        body: 'CP operatives have no special police-style powers. Any detention is limited to the citizen’s arrest power under s.24A PACE (indictable offence, necessity, reasonable grounds) and must be handed to police without unreasonable delay. Unlawful detention can expose the operative and employer to civil and criminal liability.'
++        body: 'CP operatives have no special police-style powers. Any detention is limited to the citizen’s arrest power under s.24A PACE (indictable offence, necessity, reasonable grounds) and must be handed to police without unreasonable delay. Unlawful detention can expose the operative and employer to civil and criminal liability.',
++        src: 'https://www.legislation.gov.uk/ukpga/1984/60/section/24A'
+       },
+       {
+         title: 'Data Protection — Data Protection Act 2018 / UK GDPR',
+-        body: 'Notes, logs, photographs, route plans, and medical details collected in this app are personal data. Handle them under data minimisation, purpose limitation, and security principles: restrict access, do not retain longer than necessary, and have a lawful basis (typically contract or legitimate interests) for processing the principal’s data.'
++        body: 'Notes, logs, photographs, route plans, and medical details you record in this app are personal data, and YOU (or your organisation) are the controller of them. Handle them under data minimisation, purpose limitation, and security principles: restrict access, do not retain longer than necessary, and have a lawful basis (typically contract or legitimate interests) for processing the principal’s data. Health information — blood type, allergies, conditions, medications — is “special category” data: as well as a lawful basis you need an Article 9 condition (commonly the person’s explicit consent, or vital interests in an emergency), and high-risk processing may need a data protection impact assessment. Only record what the person has agreed to share. Backups and exports made from this app are not encrypted unless you use the encrypted share option, so store and send them accordingly.',
++        src: 'https://www.legislation.gov.uk/ukpga/2018/12'
+       },
+       {
+         title: 'Driving — Road Traffic Act 1988',
+-        body: 'CP drivers hold no special exemptions from speed limits, traffic signals, or the general duty of care. Advanced driving qualifications reduce risk but do not confer legal privilege. Any incident involving a CP vehicle is assessed under ordinary road traffic law.'
++        body: 'CP drivers hold no special exemptions from speed limits, traffic signals, or the general duty of care. Advanced driving qualifications reduce risk but do not confer legal privilege. Any incident involving a CP vehicle is assessed under ordinary road traffic law.',
++        src: 'https://www.legislation.gov.uk/ukpga/1988/52'
+       },
+       {
+         title: 'Health & Safety — Health and Safety at Work etc. Act 1974',
+-        body: 'Employers and self-employed operatives have duties to assess and manage risk to themselves, colleagues, and others affected by the work, including dynamic risk assessment for advance work, events, and travel.'
++        body: 'Employers and self-employed operatives have duties to assess and manage risk to themselves, colleagues, and others affected by the work, including dynamic risk assessment for advance work, events, and travel.',
++        src: 'https://www.legislation.gov.uk/ukpga/1974/37'
+       }
+     ];
+ 
+     var accordionHtml = sections.map(function (s, i) {
++      var src = CP.ui.safeUrl(s.src);
+       return '<details class="law-item"' + (i === 0 ? ' open' : '') + '><summary>' +
+-        CP.ui.escapeHtml(s.title) + '</summary><p>' + CP.ui.escapeHtml(s.body) + '</p></details>';
++        CP.ui.escapeHtml(s.title) + '</summary><p>' + CP.ui.escapeHtml(s.body) + '</p>' +
++        '<p class="hint">Wording last edited: ' + CP.ui.escapeHtml(LAWS_EDITED) + '.' +
++        (src ? ' <a href="' + CP.ui.escapeHtml(src) + '" target="_blank" rel="noopener noreferrer">Source</a>' : '') + '</p></details>';
+     }).join('');
+ 
+     container.innerHTML =
+       '<h1>UK Laws — Reference</h1>' +
+       '<div class="disclaimer"><strong>Not legal advice.</strong> This is general reference material for awareness only. ' +
+       'Laws, case law, and licensing requirements change — verify against current legislation and take advice from a solicitor ' +
+-      'or your company’s legal advisor before making operational or employment decisions.<br>' +
+-      '<span class="reviewed-line">Content last reviewed: 2026-07-22</span></div>' +
++      'or your company’s legal advisor before making operational or employment decisions.</div>' +
+       '<div class="law-list">' + accordionHtml + '</div>' +
+-      '<section class="panel"><h2>Unit Notes</h2><div id="uklawsNotes"></div></section>';
++      '<section class="panel"><h2>Unit Notes</h2><div id="uklawsNotes"></div></section>' +
++      '<section class="panel"><h2>App Terms & Disclaimer</h2><div id="disclaimerRecord"></div></section>';
+ 
+     CP.ui.profileForm(container.querySelector('#uklawsNotes'), {
+       storageKey: 'uklawsNotes',
+@@ -54,5 +77,14 @@ CP.registerSegment({
+         { key: 'notes', label: 'Notes (e.g. company policy references, licence renewal dates)', type: 'textarea' }
+       ]
+     });
++
++    var acceptance = CP.disclaimer.getAcceptance();
++    var recordHtml = acceptance
++      ? '<p class="hint">Accepted on this device: <strong>' + CP.ui.escapeHtml(new Date(acceptance.acceptedAt).toLocaleString()) +
++        '</strong> (version ' + CP.ui.escapeHtml(acceptance.version) + ')</p>'
++      : '<p class="hint">Not yet recorded on this device.</p>';
++    container.querySelector('#disclaimerRecord').innerHTML =
++      recordHtml + '<details class="law-item"><summary>View full text</summary><div class="disclaimer-scroll" style="max-height:none;">' +
++      CP.disclaimer.HTML + '</div></details>';
+   }
+ });
+diff --git a/beta/js/storage.js b/beta/js/storage.js
+index 0a6f905..c976dcb 100644
+--- a/beta/js/storage.js
++++ b/beta/js/storage.js
+@@ -1,6 +1,10 @@
+ window.CP = window.CP || {};
+ 
+-CP.PREFIX = 'cpapp_';
++// The beta shares a browser origin with the production app (cpapp_*), and the two use different
++// operation-id formats. A separate prefix keeps the beta's data, PIN/lock config and terms
++// acceptance completely apart from production. (Beta backups made before this change hold their
++// keys without a prefix - export from the old beta first, then Import after deploying.)
++CP.PREFIX = 'cpbeta_';
+ CP.NAV = [];
+ CP.segments = {};
+ 
+@@ -11,6 +15,96 @@ CP.registerSegment = function (seg) {
+ 
+ // Keys that are NOT scoped to a single operation — they describe the
+ // operation registry itself, or app-wide device/browser settings.
++
++// Every write goes through here so a full/blocked browser store is never silent.
++var cpLastStorageAlert = 0;
++function cpSafeSetItem(fullKey, str) {
++  try {
++    localStorage.setItem(fullKey, str);
++  } catch (e) {
++    var now = Date.now();
++    if (now - cpLastStorageAlert > 4000) {
++      cpLastStorageAlert = now;
++      alert('Could not save: this browser\u2019s storage is full or blocked, so your last change was NOT saved. ' +
++        'Export a backup now, then free up space by deleting old operations.');
++    }
++    if (e && typeof e === 'object') e.cpAlerted = true;
++    throw e;
++  }
++}
++
++// --- Import hardening: backup files are untrusted input. Only allow-listed keys are written and
++// every value is cleaned first (bad ids replaced, unsafe values rejected).
++var CP_NEVER_IMPORT = ['appLock', 'disclaimerAcceptance', 'lockAttempts', 'lastBackup'];
++var CP_OPID_RE = /^id_[a-z0-9]+_[a-z0-9]+$/;
++var CP_SCOPED_KEY_RE = /^op_id_[a-z0-9]+_[a-z0-9]+_[A-Za-z0-9]{1,64}$/;
++var CP_SHORT_KEY_RE = /^[A-Za-z0-9]{1,64}$/;
++var CP_MAX_STRING = 500000;
++var CP_BAD_KEYS = ['__proto__', 'constructor', 'prototype'];
++
++function cpSanitizeImported(v, depth, stats, fieldName) {
++  depth = depth || 0;
++  if (depth > 10) throw new Error('nesting too deep');
++  if (v === null || typeof v === 'boolean') return v;
++  if (typeof v === 'number') { if (!isFinite(v)) throw new Error('bad number'); return v; }
++  if (typeof v === 'string') {
++    if (fieldName === 'id' && !CP.ui.safeId(v)) { stats.sanitized++; return CP.storage.uid(); }
++    if (v.length > CP_MAX_STRING) throw new Error('string too long');
++    return v;
++  }
++  if (Array.isArray(v)) {
++    if (v.length > 20000) throw new Error('array too long');
++    return v.map(function (x) { return cpSanitizeImported(x, depth + 1, stats, null); });
++  }
++  if (typeof v === 'object') {
++    var keys = Object.keys(v);
++    if (keys.length > 500) throw new Error('object too large');
++    var out = {};
++    keys.forEach(function (k) {
++      if (CP_BAD_KEYS.indexOf(k) !== -1) { stats.sanitized++; return; }
++      out[k] = cpSanitizeImported(v[k], depth + 1, stats, k);
++    });
++    return out;
++  }
++  throw new Error('unsupported value');
++}
++
++function cpCleanOperations(list, stats) {
++  if (!Array.isArray(list)) throw new Error('operations must be a list');
++  var clean = [];
++  list.forEach(function (o) {
++    if (!o || typeof o !== 'object' || !CP_OPID_RE.test(String(o.id || ''))) { stats.sanitized++; return; }
++    clean.push({
++      id: o.id,
++      name: String(o.name || 'Operation').slice(0, 200),
++      client: String(o.client || '').slice(0, 200),
++      status: ['planning', 'live', 'complete'].indexOf(o.status) !== -1 ? o.status : 'planning',
++      createdAt: isNaN(new Date(o.createdAt).getTime()) ? new Date().toISOString() : new Date(o.createdAt).toISOString()
++    });
++  });
++  return clean;
++}
++
++// Writes one allow-listed key (already stripped of the prefix). Returns true if written.
++function cpImportKey(k, value, stats) {
++  if (typeof k !== 'string' || CP_NEVER_IMPORT.indexOf(k) !== -1) return false;
++  var clean;
++  if (k === 'operations') clean = cpCleanOperations(value, stats);
++  else if (k === 'currentOpId') {
++    if (!CP_OPID_RE.test(String(value || ''))) return false;
++    clean = value;
++  } else if (k === 'legacyMigrated') {
++    clean = true;
++  } else if (k === 'deviceLabel') {
++    if (typeof value !== 'string') return false;
++    clean = value.slice(0, 80);
++  } else if (CP_SCOPED_KEY_RE.test(k)) {
++    clean = cpSanitizeImported(value, 0, stats, null);
++  } else return false;
++  CP.storage._rawSave(k, clean);
++  return true;
++}
++
+ CP.storage = {
+   GLOBAL_KEYS: ['operations', 'currentOpId', 'legacyMigrated', 'deviceLabel'],
+ 
+@@ -30,9 +124,14 @@ CP.storage = {
+   },
+ 
+   _rawSave: function (key, value) {
+-    localStorage.setItem(CP.storage._rawKey(key), JSON.stringify(value));
++    cpSafeSetItem(CP.storage._rawKey(key), JSON.stringify(value));
+   },
+ 
++  // Aliases so shared code (the terms/disclaimer screen) works on both builds.
++  loadGlobal: function (key, fallback) { return CP.storage._rawLoad(key, fallback); },
++  saveGlobal: function (key, value) { CP.storage._rawSave(key, value); },
++  removeGlobal: function (key) { localStorage.removeItem(CP.storage._rawKey(key)); },
++
+   // Segment-facing key: automatically namespaced under the current
+   // operation unless it's a known global key. Segment files never need
+   // to know this is happening.
+@@ -79,7 +178,7 @@ CP.storage = {
+     var out = { _exportType: 'full-backup', data: {} };
+     for (var i = 0; i < localStorage.length; i++) {
+       var k = localStorage.key(i);
+-      if (k.indexOf(CP.PREFIX) === 0) {
++      if (k.indexOf(CP.PREFIX) === 0 && CP_NEVER_IMPORT.indexOf(k.slice(CP.PREFIX.length)) === -1) {
+         try {
+           out.data[k.slice(CP.PREFIX.length)] = JSON.parse(localStorage.getItem(k));
+         } catch (e) {
+@@ -103,42 +202,60 @@ CP.storage = {
+     URL.revokeObjectURL(url);
+   },
+ 
+-  // Accepts either export shape (full-backup or single-operation), and also
+-  // the old flat pre-operations export format for backward compatibility.
++  // Accepts either beta export shape (full-backup or single-operation). Every key and value is
++  // validated first. cb(err, { mode, opName?, imported, skipped, sanitized }).
+   importAll: function (file, cb) {
+     var reader = new FileReader();
+     reader.onload = function () {
+       try {
+         var parsed = JSON.parse(reader.result);
++        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not a backup');
++        var stats = { sanitized: 0 };
++        var result = { imported: 0, skipped: 0, sanitized: 0 };
+ 
+-        if (parsed && parsed._exportType === 'full-backup') {
++        if (parsed._exportType === 'full-backup' && parsed.data && typeof parsed.data === 'object') {
+           Object.keys(parsed.data).forEach(function (k) {
+-            CP.storage._rawSave(k, parsed.data[k]);
++            var ok = false;
++            try { ok = cpImportKey(k, parsed.data[k], stats); } catch (e) { ok = false; }
++            if (ok) result.imported++; else result.skipped++;
+           });
+-          if (cb) cb(null, { mode: 'full-backup' });
+-          return;
+-        }
+-
+-        if (parsed && parsed._exportType === 'single-operation') {
+-          var newOp = CP.ops.create(
+-            (parsed._operation && parsed._operation.name ? parsed._operation.name + ' (imported)' : 'Imported Operation'),
+-            parsed._operation && parsed._operation.client
+-          );
++          var ops = CP.ops.list();
++          if (ops.length && !ops.some(function (o) { return o.id === CP.storage._rawLoad('currentOpId', null); })) {
++            CP.ops.setCurrent(ops[0].id);
++          }
++          result.mode = 'full-backup';
++        } else if (parsed._exportType === 'single-operation' && parsed.data && typeof parsed.data === 'object') {
++          var srcOp = parsed._operation && typeof parsed._operation === 'object' ? parsed._operation : {};
++          var srcName = typeof srcOp.name === 'string' ? srcOp.name.slice(0, 160) : '';
++          var newOp = CP.ops.create(srcName ? srcName + ' (imported)' : 'Imported Operation',
++            typeof srcOp.client === 'string' ? srcOp.client.slice(0, 200) : '');
+           Object.keys(parsed.data).forEach(function (k) {
+-            CP.storage._rawSave('op_' + newOp.id + '_' + k, parsed.data[k]);
++            if (!CP_SHORT_KEY_RE.test(k) || CP.storage.GLOBAL_KEYS.indexOf(k) !== -1 || CP_NEVER_IMPORT.indexOf(k) !== -1) { result.skipped++; return; }
++            try {
++              CP.storage._rawSave('op_' + newOp.id + '_' + k, cpSanitizeImported(parsed.data[k], 0, stats, null));
++              result.imported++;
++            } catch (e) { result.skipped++; }
+           });
+           CP.ops.setCurrent(newOp.id);
+-          if (cb) cb(null, { mode: 'single-operation', opName: newOp.name });
+-          return;
++          result.mode = 'single-operation';
++          result.opName = newOp.name;
++        } else if (Array.isArray(parsed.operations) || parsed.currentOperationId) {
++          // A backup from the production app: different storage format - refuse rather than write junk.
++          throw new Error('production backup');
++        } else {
++          // Legacy flat export (pre-operations version of the app) - import into the current operation.
++          var opId = CP.ops.current();
++          Object.keys(parsed).forEach(function (k) {
++            if (!CP_SHORT_KEY_RE.test(k) || CP.storage.GLOBAL_KEYS.indexOf(k) !== -1 || CP_NEVER_IMPORT.indexOf(k) !== -1) { result.skipped++; return; }
++            try {
++              CP.storage._rawSave('op_' + opId + '_' + k, cpSanitizeImported(parsed[k], 0, stats, null));
++              result.imported++;
++            } catch (e) { result.skipped++; }
++          });
++          result.mode = 'legacy';
+         }
+-
+-        // Legacy flat export (pre-operations version of the app) — import
+-        // straight into the currently selected operation.
+-        var opId = CP.ops.current();
+-        Object.keys(parsed).forEach(function (k) {
+-          CP.storage._rawSave('op_' + opId + '_' + k, parsed[k]);
+-        });
+-        if (cb) cb(null, { mode: 'legacy' });
++        result.sanitized = stats.sanitized;
++        if (cb) cb(null, result);
+       } catch (e) {
+         if (cb) cb(e);
+       }
+diff --git a/beta/js/ui.js b/beta/js/ui.js
+index 15e754d..18a9e60 100644
+--- a/beta/js/ui.js
++++ b/beta/js/ui.js
+@@ -11,6 +11,32 @@ CP.ui.escapeHtml = function (str) {
+     .replace(/'/g, '&#39;');
+ };
+ 
++// --- Hardening helpers: anything that ends up inside an HTML attribute that is NOT
++// plain text (URLs, ids) goes through these. escapeHtml alone does not make a URL safe
++// (javascript: URLs), and imported files can carry arbitrary ids / dataUrls.
++
++// Only plain https links are ever rendered as clickable external links.
++CP.ui.safeUrl = function (url) {
++  var u = String(url || '');
++  // Apostrophes are allowed: encodeURIComponent leaves ' unescaped, and addresses like "St Mary's Rd" are normal.
++  // The value is still passed through escapeHtml before it is placed in an attribute.
++  return /^https:\/\/[A-Za-z0-9.\-]+(:\d+)?(\/[^\s"<>]*)?$/.test(u) ? u : '';
++};
++
++// Uploaded documents are stored as data URLs; only accept the types the upload form allows.
++CP.ui.safeDataUrl = function (u) {
++  u = String(u || '');
++  return /^data:(application\/pdf|image\/(png|jpeg|gif|webp));base64,[A-Za-z0-9+\/=]+$/.test(u) ? u : '';
++};
++
++// Record ids are generated by CP.storage.uid(); anything else is treated as invalid.
++CP.ui.safeId = function (id) {
++  return /^[A-Za-z0-9_\-]{1,80}$/.test(String(id || '')) ? String(id) : '';
++};
++
++// Per-file cap for uploaded documents (stored as base64 in localStorage, ~5 MB shared quota).
++CP.ui.MAX_UPLOAD_BYTES = 1.5 * 1024 * 1024;
++
+ CP.ui.slug = function (s) {
+   var out = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+   return out || 'none';
+@@ -154,11 +180,15 @@ CP.ui.crud = function (container, opts) {
+   }
+ 
+   function rowActionsHtml(rec) {
+-    var html = '<button class="btn btn-small" data-act="edit" data-id="' + rec.id + '">Edit</button> ' +
+-      '<button class="btn btn-small btn-danger" data-act="delete" data-id="' + rec.id + '">Delete</button>';
++    var rid = CP.ui.escapeHtml(CP.ui.safeId(rec.id));
++    var html = '<button class="btn btn-small" data-act="edit" data-id="' + rid + '">Edit</button> ' +
++      '<button class="btn btn-small btn-danger" data-act="delete" data-id="' + rid + '">Delete</button>';
+     if (opts.rowLinks) {
+       (opts.rowLinks(rec) || []).filter(Boolean).forEach(function (link) {
+-        html += ' <a class="btn btn-small" target="_blank" rel="noopener" href="' + link.url + '">' +
++        var url = CP.ui.safeUrl(link.url);
++        if (!url) return;
++        html += ' <a class="btn btn-small" target="_blank" rel="noopener noreferrer" href="' + CP.ui.escapeHtml(url) + '"' +
++          ' title="Opens an external site — the text in this link (e.g. an address) is sent to that site">' +
+           CP.ui.escapeHtml(link.label) + '</a>';
+       });
+     }
+diff --git a/beta/sw.js b/beta/sw.js
+index 5bb203b..9b08126 100644
+--- a/beta/sw.js
++++ b/beta/sw.js
+@@ -1,4 +1,5 @@
+-var CACHE_NAME = 'cp-ops-v2';
++var CACHE_NAME = 'cp-ops-beta-v3';
++var CACHE_PREFIX = 'cp-ops-beta-';   // only ever clean up the beta's own caches
+ 
+ var PRECACHE_URLS = [
+   './',
+@@ -6,6 +7,7 @@ var PRECACHE_URLS = [
+   './manifest.json',
+   './css/style.css',
+   './js/storage.js',
++  './js/disclaimer.js',
+   './js/ui.js',
+   './js/app.js',
+   './js/segments/dashboard.js',
+@@ -40,7 +42,7 @@ self.addEventListener('activate', function (event) {
+   event.waitUntil(
+     caches.keys().then(function (keys) {
+       return Promise.all(
+-        keys.filter(function (key) { return key !== CACHE_NAME; })
++        keys.filter(function (key) { return key.indexOf(CACHE_PREFIX) === 0 && key !== CACHE_NAME; })
+           .map(function (key) { return caches.delete(key); })
+       );
+     }).then(function () {
+diff --git a/css/style.css b/css/style.css
+index 0f96481..d0eea4e 100644
+--- a/css/style.css
++++ b/css/style.css
+@@ -86,6 +86,8 @@ html, body {
+   background: #10151a;
+   border-top: 1px solid var(--panel-border);
+ }
++#appFooter a { color: var(--text-dim); text-decoration: underline; }
++#appFooter a:hover { color: var(--accent); }
+ 
+ .sidebar {
+   width: 230px;
+@@ -396,6 +398,7 @@ tr:hover td { background: #131b22; }
+ }
+ .disclaimer-scroll p { margin: 0 0 12px; }
+ .disclaimer-scroll strong { color: var(--text); }
++.disclaimer-scroll a { display: inline; margin-top: 0; color: var(--accent); font-size: inherit; }
+ 
+ /* Print */
+ @media print {
+diff --git a/index.html b/index.html
+index e345455..8363b80 100644
+--- a/index.html
++++ b/index.html
+@@ -2,6 +2,8 @@
+ <html lang="en">
+ <head>
+ <meta charset="UTF-8">
++<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'">
++<meta name="referrer" content="no-referrer">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Close Protection Ops</title>
+ <link rel="stylesheet" href="css/style.css">
+@@ -36,7 +38,8 @@
+     <nav id="sidebar" class="sidebar"></nav>
+     <main id="content" class="content"></main>
+   </div>
+-  <footer id="appFooter">Close Protection Ops &mdash; built by RD Anzen Ltd</footer>
++  <!-- TODO: add the registered office address here (Companies (Trading Disclosures) Regulations 2008). -->
++  <footer id="appFooter">Close Protection Ops &mdash; built by RD Anzen Ltd (company no. 08957578) &middot; <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a> &middot; <a href="mailto:Rick@RDAnzen.co.uk">Rick@RDAnzen.co.uk</a></footer>
+ </div>
+ 
+ <script src="js/storage.js"></script>
+diff --git a/js/app.js b/js/app.js
+index a6c3ee0..b8a9db7 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -56,11 +56,13 @@ function cpWireHeader() {
+       importInput.value = '';
+       return;
+     }
+-    CP.storage.importAll(file, function (err) {
++    CP.storage.importAll(file, function (err, result) {
+       if (err) {
+-        alert('Import failed: file is not valid JSON.');
++        alert('Import failed: the file is not a valid Close Protection Ops backup.');
+       } else {
+-        alert('Import complete.');
++        alert('Import complete: ' + result.imported + ' section(s) restored' +
++          (result.skipped ? ', ' + result.skipped + ' skipped (unrecognised or unsafe)' : '') +
++          (result.sanitized ? ', ' + result.sanitized + ' value(s) cleaned' : '') + '.');
+         location.reload();
+       }
+       importInput.value = '';
+@@ -70,6 +72,11 @@ function cpWireHeader() {
+ 
+ function cpBootApp() {
+   cpWireHeader();
++  // Ask the browser not to evict this site's data when it is short of space.
++  if (navigator.storage && navigator.storage.persist) {
++    navigator.storage.persist().catch(function () { /* best effort */ });
++  }
++  CP.lock.watchBackground();
+   window.addEventListener('hashchange', function () {
+     cpSafeRenderContent();
+     cpRenderNav();
+diff --git a/js/disclaimer.js b/js/disclaimer.js
+index 9255540..07a6f36 100644
+--- a/js/disclaimer.js
++++ b/js/disclaimer.js
+@@ -1,8 +1,10 @@
+ window.CP = window.CP || {};
+ CP.disclaimer = {};
+ 
+-CP.disclaimer.VERSION = '1.1';
+-CP.disclaimer.VERSION_LABEL = 'v1.1 (17 August 2026)';
++CP.disclaimer.VERSION = '1.2';
++CP.disclaimer.VERSION_LABEL = 'v1.2 (20 September 2026)';
++// Where the Privacy Policy lives relative to the page that shows this text (beta overrides this).
++CP.disclaimer.PRIVACY_URL = 'privacy.html';
+ 
+ CP.disclaimer.HTML =
+   '<p>By using the App, you acknowledge and agree that:</p>' +
+@@ -12,6 +14,8 @@ CP.disclaimer.HTML =
+   'communications plans.</p>' +
+   '<p><strong>Not professional advice.</strong> Nothing in the App constitutes security, medical, legal, or professional advice. ' +
+   'All operational plans, risk assessments, and decisions remain the sole responsibility of the user and their organisation.</p>' +
++  '<p><strong>Business use.</strong> The App is intended for use by security professionals and organisations in the course of their ' +
++  'business or profession. It is not offered to consumers.</p>' +
+   '<p><strong>User responsibility.</strong> The user is solely responsible for independently verifying all information within the App ' +
+   'before relying on it in any operational context, and for exercising independent professional judgement at all times.</p>' +
+   '<p><strong>Data handling.</strong> The App operates entirely on-device. All data you enter is stored locally on your device only; ' +
+@@ -19,12 +23,21 @@ CP.disclaimer.HTML =
+   'corruption, unauthorised access, or disclosure of data resulting from device loss, theft, failure, or user error.</p>' +
+   '<p><strong>Limitation of liability.</strong> To the maximum extent permitted by law, RD Anzen Ltd excludes all liability for any ' +
+   'indirect, incidental, special, or consequential loss or damage — including loss of data, loss of profit, or business interruption — ' +
+-  'arising from use of, or inability to use, the App. Except in respect of liability that cannot lawfully be excluded or limited, RD Anzen ' +
+-  'Ltd\u2019s total liability to you for any direct loss arising from your use of the App shall not exceed [\u00a3 — cap to be set] in aggregate ' +
+-  'in any 12-month period.</p>' +
++  'arising from use of, or inability to use, the App. ' +
++  // TODO (solicitor): insert the agreed aggregate liability cap for direct loss here, then bump VERSION so users re-accept.
++  '</p>' +
+   '<p><strong>Statutory rights preserved.</strong> Nothing in this disclaimer excludes or limits liability for death or personal injury ' +
+   'caused by negligence, fraud or fraudulent misrepresentation, or any other liability which cannot lawfully be excluded or limited ' +
+   'under the laws of England and Wales.</p>' +
++  '<p><strong>Licence and ownership.</strong> RD Anzen Ltd grants you a limited, non-exclusive, non-transferable licence to use the App ' +
++  'for your own internal business purposes. The App, its design, and its built-in templates remain the property of RD Anzen Ltd (or its licensors). ' +
++  'Information you enter remains yours. You may not copy, resell, or reverse-engineer the App except as the law allows.</p>' +
++  '<p><strong>Third-party links.</strong> Some buttons open Google Maps, what3words or GOV.UK in your browser. The text in those links ' +
++  '(for example an address, a three-word address, or a country name) is sent to that site, which is not operated by RD Anzen Ltd and has its own terms ' +
++  'and privacy policy. RD Anzen Ltd is not responsible for their content or availability.</p>' +
++  '<p><strong>Your data and privacy.</strong> See the <a href="' + CP.disclaimer.PRIVACY_URL + '" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. ' +
++  'You are responsible for having a lawful basis to record other people’s personal data (including health information) in the App and for keeping backups and exports secure.</p>' +
++  '<p><strong>Changes.</strong> RD Anzen Ltd may update the App and this disclaimer. If the text changes materially you will be asked to accept it again.</p>' +
+   '<p><strong>Governing law.</strong> This disclaimer, and any dispute or claim arising out of or in connection with it or your use of the ' +
+   'App, is governed by the laws of England and Wales. The courts of England and Wales have exclusive jurisdiction.</p>' +
+   '<p><strong>About the provider.</strong> The App is provided by RD Anzen Ltd, a company registered in England and Wales ' +
+@@ -34,6 +47,15 @@ CP.disclaimer.HTML =
+ 
+ CP.disclaimer.getAcceptance = function () { return CP.storage.loadGlobal('disclaimerAcceptance', null); };
+ 
++// SHA-256 of the exact text shown, stored with the acceptance so a later dispute can show which wording was accepted.
++CP.disclaimer.textHash = function () {
++  if (!(window.crypto && crypto.subtle)) return Promise.resolve('');
++  var bytes = new TextEncoder().encode(CP.disclaimer.HTML);
++  return crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
++    return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
++  }).catch(function () { return ''; });
++};
++
+ CP.disclaimer.isAccepted = function () {
+   var rec = CP.disclaimer.getAcceptance();
+   return !!(rec && rec.version === CP.disclaimer.VERSION);
+@@ -54,9 +76,10 @@ CP.disclaimer.checkAndRun = function (onAccepted) {
+   document.body.appendChild(overlay);
+ 
+   overlay.querySelector('#disclaimerAcceptBtn').addEventListener('click', function () {
+-    CP.storage.saveGlobal('disclaimerAcceptance', {
+-      version: CP.disclaimer.VERSION,
+-      acceptedAt: new Date().toISOString()
++    var record = { version: CP.disclaimer.VERSION, acceptedAt: new Date().toISOString() };
++    CP.storage.saveGlobal('disclaimerAcceptance', record);
++    CP.disclaimer.textHash().then(function (hash) {
++      if (hash) { record.textSha256 = hash; CP.storage.saveGlobal('disclaimerAcceptance', record); }
+     });
+     overlay.remove();
+     onAccepted();
+diff --git a/js/lock.js b/js/lock.js
+index fe41bd0..40e19a9 100644
+--- a/js/lock.js
++++ b/js/lock.js
+@@ -57,6 +57,29 @@ function cpSha256Hex(str) {
+   });
+ }
+ 
++// PBKDF2-SHA256 (600,000 iterations, OWASP 2023 guidance) replaces the old single SHA-256 pass.
++// A 6-digit PIN is still only 1,000,000 possibilities, so this slows guessing down - it does not
++// make the PIN strong. The lock is a screen lock, not encryption (the settings panel says so).
++var CP_PBKDF2_ITER = 600000;
++var CP_RELOCK_AFTER_MS = 5 * 60 * 1000;   // re-lock after 5 minutes in the background
++var CP_LOCK_MAX_FREE_TRIES = 5;
++
++function cpPbkdf2Hex(secret, saltHex, iterations) {
++  var enc = new TextEncoder();
++  return crypto.subtle.importKey('raw', enc.encode(secret), 'PBKDF2', false, ['deriveBits']).then(function (km) {
++    return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(saltHex), iterations: iterations, hash: 'SHA-256' }, km, 256);
++  }).then(function (bits) {
++    return Array.from(new Uint8Array(bits)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
++  });
++}
++
++// Hash a PIN/phrase the way this config was created (legacy configs used one SHA-256 pass).
++function cpHashSecret(cfg, kind, value, forceNew) {
++  var kdf = forceNew ? 'pbkdf2-sha256' : (kind === 'pin' ? cfg.pinKdf : cfg.recoveryKdf);
++  if (kdf === 'pbkdf2-sha256') return cpPbkdf2Hex(kind + ':' + value, cfg.salt, cfg.iter || CP_PBKDF2_ITER);
++  return cpSha256Hex(cfg.salt + ':' + kind + ':' + value);
++}
++
+ function cpNormalizePhrase(str) {
+   return String(str || '').trim().toLowerCase().replace(/\s+/g, ' ');
+ }
+@@ -66,16 +89,66 @@ function cpNormalizePhrase(str) {
+ CP.lock.getConfig = function () { return CP.storage.loadGlobal('appLock', null); };
+ CP.lock.isEnabled = function () { return !!CP.lock.getConfig(); };
+ 
++// --- Guess limiting -----------------------------------------------------------------
++// After 5 wrong tries the lock backs off (30s, 60s, 2m ... capped at 15 min). This only slows down
++// someone using the normal screen; anyone who can run code on the device can clear it.
++
++CP.lock.lockedMs = function () {
++  var st = CP.storage.loadGlobal('lockAttempts', null);
++  return st && st.lockedUntil ? Math.max(0, st.lockedUntil - Date.now()) : 0;
++};
++
++CP.lock.recordFailure = function () {
++  var st = CP.storage.loadGlobal('lockAttempts', null) || { count: 0, lockedUntil: 0 };
++  st.count = (st.count || 0) + 1;
++  if (st.count >= CP_LOCK_MAX_FREE_TRIES) {
++    var delay = Math.min(15 * 60 * 1000, 30000 * Math.pow(2, st.count - CP_LOCK_MAX_FREE_TRIES));
++    st.lockedUntil = Date.now() + delay;
++  }
++  CP.storage.saveGlobal('lockAttempts', st);
++};
++
++CP.lock.recordSuccess = function () { CP.storage.removeGlobal('lockAttempts'); };
++
++function cpLockedMessage(ms) {
++  var secs = Math.ceil(ms / 1000);
++  return 'Too many attempts. Try again in ' + (secs >= 120 ? Math.ceil(secs / 60) + ' minutes' : secs + ' seconds') + '.';
++}
++
++// cb(ok, info) - info.lockedMs is set when the attempt was refused because of back-off.
+ CP.lock.verifyPin = function (pin, cb) {
+   var cfg = CP.lock.getConfig();
+   if (!cfg) { cb(true); return; }
+-  cpSha256Hex(cfg.salt + ':pin:' + pin).then(function (hash) { cb(hash === cfg.pinHash); });
++  var wait = CP.lock.lockedMs();
++  if (wait > 0) { cb(false, { lockedMs: wait }); return; }
++  cpHashSecret(cfg, 'pin', pin).then(function (hash) {
++    if (hash !== cfg.pinHash) { CP.lock.recordFailure(); cb(false, { lockedMs: CP.lock.lockedMs() }); return; }
++    CP.lock.recordSuccess();
++    if (cfg.pinKdf !== 'pbkdf2-sha256') {
++      // Upgrade an old single-SHA-256 PIN hash in place now that we have the PIN.
++      cfg.iter = CP_PBKDF2_ITER;
++      cpHashSecret(cfg, 'pin', pin, true).then(function (newHash) {
++        cfg.pinHash = newHash;
++        cfg.pinKdf = 'pbkdf2-sha256';
++        CP.storage.saveGlobal('appLock', cfg);
++        cb(true);
++      }).catch(function () { cb(true); });
++      return;
++    }
++    cb(true);
++  });
+ };
+ 
+ CP.lock.verifyRecoveryPhrase = function (phrase, cb) {
+   var cfg = CP.lock.getConfig();
+   if (!cfg) { cb(true); return; }
+-  cpSha256Hex(cfg.salt + ':phrase:' + cpNormalizePhrase(phrase)).then(function (hash) { cb(hash === cfg.recoveryHash); });
++  var wait = CP.lock.lockedMs();
++  if (wait > 0) { cb(false, { lockedMs: wait }); return; }
++  cpHashSecret(cfg, 'phrase', cpNormalizePhrase(phrase)).then(function (hash) {
++    if (hash !== cfg.recoveryHash) { CP.lock.recordFailure(); cb(false, { lockedMs: CP.lock.lockedMs() }); return; }
++    CP.lock.recordSuccess();
++    cb(true);
++  });
+ };
+ 
+ // Generates a fresh salt + recovery phrase, hashes everything, saves config.
+@@ -84,16 +157,34 @@ CP.lock.setNewPin = function (pin, cb) {
+   var salt = cpRandomSalt();
+   var words = cpRandomWords(CP_RECOVERY_WORD_COUNT);
+   var phrase = words.join(' ');
++  var cfg = { salt: salt, iter: CP_PBKDF2_ITER };
+   Promise.all([
+-    cpSha256Hex(salt + ':pin:' + pin),
+-    cpSha256Hex(salt + ':phrase:' + cpNormalizePhrase(phrase))
++    cpHashSecret(cfg, 'pin', pin, true),
++    cpHashSecret(cfg, 'phrase', cpNormalizePhrase(phrase), true)
+   ]).then(function (results) {
+-    CP.storage.saveGlobal('appLock', { salt: salt, pinHash: results[0], recoveryHash: results[1], updatedDate: new Date().toISOString().slice(0, 10) });
++    CP.storage.saveGlobal('appLock', {
++      salt: salt, iter: CP_PBKDF2_ITER, pinKdf: 'pbkdf2-sha256', recoveryKdf: 'pbkdf2-sha256',
++      pinHash: results[0], recoveryHash: results[1], updatedDate: new Date().toISOString().slice(0, 10)
++    });
++    CP.lock.recordSuccess();
+     cb(words);
+   });
+ };
+ 
+-CP.lock.disable = function () { CP.storage.removeGlobal('appLock'); };
++CP.lock.disable = function () { CP.storage.removeGlobal('appLock'); CP.storage.removeGlobal('lockAttempts'); };
++
++// Re-lock when the app has been in the background for a while (a phone left unattended).
++CP.lock.watchBackground = function () {
++  var hiddenAt = null;
++  document.addEventListener('visibilitychange', function () {
++    if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
++    if (hiddenAt !== null && Date.now() - hiddenAt >= CP_RELOCK_AFTER_MS &&
++        CP.lock.isEnabled() && !document.getElementById('lockOverlay')) {
++      CP.lock.checkAndRun(function () {});
++    }
++    hiddenAt = null;
++  });
++};
+ 
+ function cpIsValidPin(pin) { return /^\d{6}$/.test(pin); }
+ 
+@@ -131,9 +222,10 @@ CP.lock.checkAndRun = function (onUnlocked) {
+       overlay.querySelector('#lockPinForm').addEventListener('submit', function (e) {
+         e.preventDefault();
+         var pin = overlay.querySelector('#lockPinInput').value;
+-        CP.lock.verifyPin(pin, function (ok) {
++        CP.lock.verifyPin(pin, function (ok, info) {
+           if (ok) { unlock(); return; }
+-          overlay.querySelector('#lockError').textContent = 'Incorrect PIN.';
++          overlay.querySelector('#lockError').textContent =
++            (info && info.lockedMs) ? cpLockedMessage(info.lockedMs) : 'Incorrect PIN.';
+           overlay.querySelector('#lockPinInput').value = '';
+           overlay.querySelector('#lockPinInput').focus();
+         });
+@@ -159,9 +251,10 @@ CP.lock.checkAndRun = function (onUnlocked) {
+       overlay.querySelector('#lockRecoveryForm').addEventListener('submit', function (e) {
+         e.preventDefault();
+         var phrase = overlay.querySelector('#lockRecoveryInput').value;
+-        CP.lock.verifyRecoveryPhrase(phrase, function (ok) {
++        CP.lock.verifyRecoveryPhrase(phrase, function (ok, info) {
+           if (ok) { mode = 'newpin'; draw(); return; }
+-          overlay.querySelector('#lockError').textContent = 'That recovery phrase doesn’t match.';
++          overlay.querySelector('#lockError').textContent =
++            (info && info.lockedMs) ? cpLockedMessage(info.lockedMs) : 'That recovery phrase doesn’t match.';
+         });
+       });
+       overlay.querySelector('#lockBackLink').addEventListener('click', function (e) {
+@@ -224,11 +317,12 @@ CP.lock.renderSettings = function (container) {
+ 
+     if (step.mode === 'status') {
+       container.innerHTML = enabled
+-        ? '<p class="hint">App lock is <strong>ON</strong>. A 6-digit PIN is required every time the app is fully closed and reopened.</p>' +
++        ? '<p class="hint">App lock is <strong>ON</strong>. A 6-digit PIN is required when the app is opened, and again after it has been in the background for 5 minutes. ' +
++          'This is a screen lock: the data stored on this device is <strong>not encrypted</strong>.</p>' +
+           '<div class="form-actions"><button class="btn btn-small" id="lockChangeBtn">Change PIN</button>' +
+           '<button class="btn btn-small btn-danger" id="lockDisableBtn">Disable Lock</button></div>'
+         : '<p class="hint">App lock is <strong>OFF</strong>. Set a 6-digit PIN so the app can’t be opened without it. ' +
+-          'This deters casual/shoulder-surfed access on this device — it isn’t protection against someone with the device and technical tools.</p>' +
++          'This deters casual/shoulder-surfed access on this device — it isn’t protection against someone with the device and technical tools, and the data stored on this device is not encrypted.</p>' +
+           '<div class="form-actions"><button class="btn btn-primary btn-small" id="lockSetupBtn">Set Up PIN</button></div>';
+ 
+       var setupBtn = container.querySelector('#lockSetupBtn');
+@@ -252,8 +346,12 @@ CP.lock.renderSettings = function (container) {
+       container.querySelector('#lockVerifyForm').addEventListener('submit', function (e) {
+         e.preventDefault();
+         var pin = container.querySelector('#lockVerifyInput').value;
+-        CP.lock.verifyPin(pin, function (ok) {
+-          if (!ok) { container.querySelector('#lockSettingsError').textContent = 'Incorrect PIN.'; return; }
++        CP.lock.verifyPin(pin, function (ok, info) {
++          if (!ok) {
++            container.querySelector('#lockSettingsError').textContent =
++              (info && info.lockedMs) ? cpLockedMessage(info.lockedMs) : 'Incorrect PIN.';
++            return;
++          }
+           if (step.next === 'disable') {
+             CP.lock.disable();
+             step.mode = 'status';
+diff --git a/js/segments/dashboard.js b/js/segments/dashboard.js
+index 0497036..e5e4e47 100644
+--- a/js/segments/dashboard.js
++++ b/js/segments/dashboard.js
+@@ -1,10 +1,28 @@
++// Data lives only in this browser. Browsers can clear site storage (low disk space, "clear data",
++// iOS Safari after ~7 days without use unless the app is added to the Home Screen), so the app
++// keeps track of when you last exported a backup and says so plainly.
++function cpRenderBackupStatus(container) {
++  var last = CP.storage.getLastBackup();
++  var lastDate = last ? new Date(last) : null;
++  var days = lastDate && !isNaN(lastDate.getTime()) ? Math.floor((Date.now() - lastDate.getTime()) / 86400000) : null;
++  var stale = days === null || days > 30;
++  container.innerHTML =
++    '<p class="hint">All data is stored only in this browser on this device — there is no cloud copy. ' +
++    'Use <strong>Export Data</strong> (top of the page) to save a backup file, and keep it somewhere safe. ' +
++    'Backup files are <strong>not encrypted</strong>; use Export Document → Share for an encrypted copy of one operation.</p>' +
++    '<p class="' + (stale ? 'lock-error' : 'hint') + '">' +
++    (days === null ? 'No backup has been exported from this device yet.' :
++      'Last backup exported: ' + CP.ui.escapeHtml(lastDate.toLocaleDateString()) + ' (' + days + ' day(s) ago).') +
++    (stale ? ' Back up now.' : '') + '</p>';
++}
++
+ function cpRenderOpsSwitcher(container) {
+   var ops = CP.storage.getOperations();
+   var currentId = CP.storage.getCurrentOperationId();
+   var current = ops.filter(function (o) { return o.id === currentId; })[0];
+ 
+   var options = ops.map(function (o) {
+-    return '<option value="' + o.id + '"' + (o.id === currentId ? ' selected' : '') + '>' + CP.ui.escapeHtml(o.name) + '</option>';
++    return '<option value="' + CP.ui.escapeHtml(o.id) + '"' + (o.id === currentId ? ' selected' : '') + '>' + CP.ui.escapeHtml(o.name) + '</option>';
+   }).join('');
+ 
+   container.innerHTML =
+@@ -62,11 +80,13 @@ CP.registerSegment({
+       '<p class="hint">Each operation has its own completely separate data — team, routes, medical, plans, everything. ' +
+       'Start a new one to begin a fresh page without losing the last one; switch back to it anytime.</p>' +
+       '<div id="opsSwitcher"></div></section>' +
++      '<section class="panel"><h2>Backup</h2><div id="backupStatus"></div></section>' +
+       '<section class="panel"><h2>App Lock (PIN Security)</h2><div id="lockSettings"></div></section>' +
+       '<section class="panel"><h2>Operation Details</h2><div id="opInfo"></div></section>' +
+       '<section class="panel"><h2>Quick Access</h2><div id="quickGrid" class="quick-grid"></div></section>';
+ 
+     cpRenderOpsSwitcher(container.querySelector('#opsSwitcher'));
++    cpRenderBackupStatus(container.querySelector('#backupStatus'));
+     CP.lock.renderSettings(container.querySelector('#lockSettings'));
+ 
+     CP.ui.profileForm(container.querySelector('#opInfo'), {
+diff --git a/js/segments/exportDoc.js b/js/segments/exportDoc.js
+index 7538f65..eca5e02 100644
+--- a/js/segments/exportDoc.js
++++ b/js/segments/exportDoc.js
+@@ -91,10 +91,11 @@ function cpDownloadOperationDocument() {
+ 
+ function cpRenderShareOut(container) {
+   container.innerHTML =
+-    '<p class="hint">Encrypts everything in the current operation into one file, locked with a PIN you choose. ' +
+-    'Send the file to a teammate by any channel (email, AirDrop, Signal) — without the PIN it’s unreadable.</p>' +
++    '<p class="hint">Encrypts everything in the current operation into one file, locked with a passphrase you choose (at least 12 characters — a few random words is ideal). ' +
++    'Send the file to a teammate by any channel (email, AirDrop, Signal) and give them the passphrase by a <em>different</em> channel. ' +
++    'The passphrase is the only protection: a short or guessable one can be cracked offline.</p>' +
+     '<form class="inline-add-form" id="shareOutForm">' +
+-    '<input type="text" id="shareOutPin" placeholder="Set a share PIN (min 4 characters)" autocomplete="off">' +
++    '<input type="text" id="shareOutPin" placeholder="Set a share passphrase (min 12 characters)" autocomplete="off">' +
+     '<button type="submit" class="btn btn-small btn-primary">Generate Encrypted File</button>' +
+     '</form><div class="lock-error" id="shareOutError"></div>';
+ 
+@@ -103,7 +104,7 @@ function cpRenderShareOut(container) {
+     var pin = container.querySelector('#shareOutPin').value;
+     var err = container.querySelector('#shareOutError');
+     err.textContent = '';
+-    if (pin.length < 4) { err.textContent = 'PIN must be at least 4 characters.'; return; }
++    if (pin.length < CP.share.MIN_PASSPHRASE) { err.textContent = 'Passphrase must be at least ' + CP.share.MIN_PASSPHRASE + ' characters.'; return; }
+ 
+     var payload = CP.share.buildOperationPayload();
+     CP.share.encrypt(payload, pin).then(function (envelope) {
+@@ -122,7 +123,7 @@ function cpRenderShareIn(container) {
+     '<p class="hint">Import a .cpshare file from a teammate. It’s added as a brand-new operation — your own operations are left untouched.</p>' +
+     '<form class="inline-add-form" id="shareInForm">' +
+     '<input type="file" id="shareInFile" accept=".cpshare,application/octet-stream">' +
+-    '<input type="text" id="shareInPin" placeholder="Enter their share PIN" autocomplete="off">' +
++    '<input type="text" id="shareInPin" placeholder="Enter their share passphrase" autocomplete="off">' +
+     '<button type="submit" class="btn btn-small btn-primary">Import</button>' +
+     '</form><div class="lock-error" id="shareInError"></div>';
+ 
+@@ -145,12 +146,13 @@ function cpRenderShareIn(container) {
+         return;
+       }
+       CP.share.decrypt(envelope, pin).then(function (payload) {
+-        CP.share.importAsNewOperation(payload);
+-        alert('Imported as a new operation. Switch to it from Dashboard → Operations → Viewing.');
++        var res = CP.share.importAsNewOperation(payload);
++        alert('Imported as a new operation. Switch to it from Dashboard → Operations → Viewing.' +
++          (res && res.sanitized ? '\n\n' + res.sanitized + ' value(s) in the file were unsafe or malformed and were cleaned or dropped.' : ''));
+         fileInput.value = '';
+         container.querySelector('#shareInPin').value = '';
+       }).catch(function () {
+-        err.textContent = 'Incorrect PIN, or the file is corrupted.';
++        err.textContent = 'Incorrect passphrase, or the file is corrupted or not a share file.';
+       });
+     };
+     reader.readAsText(file);
+diff --git a/js/segments/uklaws.js b/js/segments/uklaws.js
+index 183a483..af54468 100644
+--- a/js/segments/uklaws.js
++++ b/js/segments/uklaws.js
+@@ -3,44 +3,63 @@ CP.registerSegment({
+   label: 'UK Laws',
+   icon: '⚖️',
+   render: function (container) {
++    // Each card carries a source link. "Last edited" is the date the wording was last changed in this app,
++    // NOT a statement that a lawyer has checked it - always verify against the linked source.
++    var LAWS_EDITED = '20 September 2026';
+     var sections = [
+       {
+         title: 'SIA Licensing — Private Security Industry Act 2001',
+-        body: 'Close protection work in the UK is a licensable activity under the Private Security Industry Act 2001. Operatives generally require a valid SIA Close Protection licence to work in a CP role for reward. Check licence validity and renewal dates for every team member before deployment.'
++        body: 'Close protection work in the UK is a licensable activity under the Private Security Industry Act 2001. Operatives generally require a valid SIA Close Protection licence to work in a CP role for reward. Check licence validity and renewal dates for every team member before deployment.',
++        src: 'https://www.legislation.gov.uk/ukpga/2001/12'
+       },
+       {
+         title: 'Martyn’s Law — Terrorism (Protection of Premises) Act 2025',
+-        body: 'Martyn’s Law places new counter-terrorism duties on those responsible for qualifying public premises and events, named after Martyn Hett, a victim of the 2017 Manchester Arena attack. A "standard tier" (broadly, venues/events with a capacity around 200+) requires basic preparedness — staff training, a public protection plan, and simple physical measures. An "enhanced tier" (broadly, capacity around 800+) adds a requirement for a documented assessment and more substantial security measures. The Security Industry Authority (SIA) is the appointed regulator. Thresholds, duties, and the enforcement start date were still being finalised in official guidance as this was written — confirm current requirements and the compliance deadline directly with the SIA’s Martyn’s Law guidance before treating any venue or event as compliant, and factor it into Event Security and Advance Party planning for any qualifying premises.'
++        body: 'Martyn’s Law places counter-terrorism duties on those responsible for qualifying public premises and events. Broadly, a “standard” tier (capacity around 200 to 799) requires basic preparedness — staff training, public protection procedures and simple measures — and an “enhanced” tier (capacity around 800+) adds a documented risk assessment, a senior individual and more substantial measures. The Security Industry Authority (SIA) is the regulator. The Act received Royal Assent on 3 April 2025 but its substantive duties are NOT yet in force: government has set an implementation period of at least 24 months from Royal Assent, and Home Office statutory guidance was published in April 2026. The date the duties commence will be set by regulations — check the current position with the Home Office / SIA before treating any venue or event as in or out of scope, and factor it into Event Security and Advance Party planning.',
++        src: 'https://www.gov.uk/government/publications/the-terrorism-protection-of-premises-act-2025/terrorism-protection-of-premises-act-2025-statutory-guidance'
+       },
+       {
+-        title: 'Use of Force — Criminal Law Act 1967 s.3 & Common Law Self-Defence',
+-        body: 'Any force used to protect the principal, yourself, or others must be reasonable and proportionate in the circumstances as honestly believed at the time. This applies equally to self-defence, defence of another, and prevention of crime. Excessive or pre-emptive force is not protected. Document any use of force as soon as practicable after the event.'
++        title: 'Use of Force — Criminal Law Act 1967 s.3, Criminal Justice and Immigration Act 2008 s.76 & Common Law',
++        body: 'Force used to protect the principal, yourself or others, or to prevent crime, must be reasonable in the circumstances as you honestly believed them to be. You do not have to wait to be attacked before acting — a pre-emptive act can be lawful if it is reasonable on what you honestly believed was about to happen (R v Beckford [1988] AC 130) — but force that is excessive or disproportionate is not protected. A genuinely held mistaken belief can still count; a mistake caused by voluntary intoxication cannot be relied on (s.76). In the heat of the moment you are not expected to weigh the exact amount of force to a nicety, but you must be able to justify what you did afterwards. Document any use of force as soon as practicable after the event and take legal advice.',
++        src: 'https://www.legislation.gov.uk/ukpga/2008/4/section/76'
+       },
+       {
+         title: 'Firearms — Firearms Act 1968',
+-        body: 'UK close protection operatives are, with very limited exception, unarmed. Carrying a firearm without the relevant certificate/authority is a serious criminal offence. Any armed CP tasking in the UK requires specific lawful authority; this is not the default position for private CP work.'
++        body: 'UK close protection operatives are, with very limited exception, unarmed. Carrying a firearm without the relevant certificate/authority is a serious criminal offence. Any armed CP tasking in the UK requires specific lawful authority; this is not the default position for private CP work.',
++        src: 'https://www.legislation.gov.uk/ukpga/1968/27'
++      },
++      {
++        title: 'Weapons & Restricted Items — Firearms Act 1968 s.5, Prevention of Crime Act 1953, Criminal Justice Act 1988 s.139',
++        body: 'Incapacitant sprays containing CS or PAVA are prohibited weapons under s.5(1)(b) of the Firearms Act 1968; possession without authority is a serious offence and being a security operative is not an authority. Carrying an offensive weapon (an item made or adapted to cause injury, or carried with that intention — for example extendable batons or knuckledusters) in a public place without lawful authority or reasonable excuse is an offence under the Prevention of Crime Act 1953, and carrying a bladed or sharply pointed article in public without good reason is an offence under s.139 of the Criminal Justice Act 1988. Your job is not automatically accepted as a “reasonable excuse”. Keep any kit list to lawful items and check the law for every country you travel to.',
++        src: 'https://www.legislation.gov.uk/ukpga/Eliz2/1-2/14'
+       },
+       {
+         title: 'Powers of Arrest / Detention — PACE 1984',
+-        body: 'CP operatives have no special police-style powers. Any detention is limited to the citizen’s arrest power under s.24A PACE (indictable offence, necessity, reasonable grounds) and must be handed to police without unreasonable delay. Unlawful detention can expose the operative and employer to civil and criminal liability.'
++        body: 'CP operatives have no special police-style powers. Any detention is limited to the citizen’s arrest power under s.24A PACE (indictable offence, necessity, reasonable grounds) and must be handed to police without unreasonable delay. Unlawful detention can expose the operative and employer to civil and criminal liability.',
++        src: 'https://www.legislation.gov.uk/ukpga/1984/60/section/24A'
+       },
+       {
+         title: 'Data Protection — Data Protection Act 2018 / UK GDPR',
+-        body: 'Notes, logs, photographs, route plans, and medical details collected in this app are personal data. Handle them under data minimisation, purpose limitation, and security principles: restrict access, do not retain longer than necessary, and have a lawful basis (typically contract or legitimate interests) for processing the principal’s data.'
++        body: 'Notes, logs, photographs, route plans, and medical details you record in this app are personal data, and YOU (or your organisation) are the controller of them. Handle them under data minimisation, purpose limitation, and security principles: restrict access, do not retain longer than necessary, and have a lawful basis (typically contract or legitimate interests) for processing the principal’s data. Health information — blood type, allergies, conditions, medications — is “special category” data: as well as a lawful basis you need an Article 9 condition (commonly the person’s explicit consent, or vital interests in an emergency), and high-risk processing may need a data protection impact assessment. Only record what the person has agreed to share. Backups and exports made from this app are not encrypted unless you use the encrypted share option, so store and send them accordingly.',
++        src: 'https://www.legislation.gov.uk/ukpga/2018/12'
+       },
+       {
+         title: 'Driving — Road Traffic Act 1988',
+-        body: 'CP drivers hold no special exemptions from speed limits, traffic signals, or the general duty of care. Advanced driving qualifications reduce risk but do not confer legal privilege. Any incident involving a CP vehicle is assessed under ordinary road traffic law.'
++        body: 'CP drivers hold no special exemptions from speed limits, traffic signals, or the general duty of care. Advanced driving qualifications reduce risk but do not confer legal privilege. Any incident involving a CP vehicle is assessed under ordinary road traffic law.',
++        src: 'https://www.legislation.gov.uk/ukpga/1988/52'
+       },
+       {
+         title: 'Health & Safety — Health and Safety at Work etc. Act 1974',
+-        body: 'Employers and self-employed operatives have duties to assess and manage risk to themselves, colleagues, and others affected by the work, including dynamic risk assessment for advance work, events, and travel.'
++        body: 'Employers and self-employed operatives have duties to assess and manage risk to themselves, colleagues, and others affected by the work, including dynamic risk assessment for advance work, events, and travel.',
++        src: 'https://www.legislation.gov.uk/ukpga/1974/37'
+       }
+     ];
+ 
+     var accordionHtml = sections.map(function (s, i) {
++      var src = CP.ui.safeUrl(s.src);
+       return '<details class="law-item"' + (i === 0 ? ' open' : '') + '><summary>' +
+-        CP.ui.escapeHtml(s.title) + '</summary><p>' + CP.ui.escapeHtml(s.body) + '</p></details>';
++        CP.ui.escapeHtml(s.title) + '</summary><p>' + CP.ui.escapeHtml(s.body) + '</p>' +
++        '<p class="hint">Wording last edited: ' + CP.ui.escapeHtml(LAWS_EDITED) + '.' +
++        (src ? ' <a href="' + CP.ui.escapeHtml(src) + '" target="_blank" rel="noopener noreferrer">Source</a>' : '') + '</p></details>';
+     }).join('');
+ 
+     container.innerHTML =
+diff --git a/js/share.js b/js/share.js
+index db3e32e..3232bc5 100644
+--- a/js/share.js
++++ b/js/share.js
+@@ -15,11 +15,15 @@ function cpB64ToBuf(b64) {
+   return bytes.buffer;
+ }
+ 
+-function cpDeriveShareKey(pin, salt) {
++// v1 files (150,000 iterations) can still be opened; new files use 600,000 (v2).
++var CP_SHARE_ITER = { 1: 150000, 2: 600000 };
++var CP_SHARE_MIN_PASSPHRASE = 12;
++
++function cpDeriveShareKey(pin, salt, iterations) {
+   var enc = new TextEncoder();
+   return crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']).then(function (keyMaterial) {
+     return crypto.subtle.deriveKey(
+-      { name: 'PBKDF2', salt: salt, iterations: 150000, hash: 'SHA-256' },
++      { name: 'PBKDF2', salt: salt, iterations: iterations, hash: 'SHA-256' },
+       keyMaterial,
+       { name: 'AES-GCM', length: 256 },
+       false,
+@@ -41,20 +45,26 @@ CP.share.buildOperationPayload = function () {
+ CP.share.encrypt = function (obj, pin) {
+   var salt = crypto.getRandomValues(new Uint8Array(16));
+   var iv = crypto.getRandomValues(new Uint8Array(12));
+-  return cpDeriveShareKey(pin, salt).then(function (key) {
++  return cpDeriveShareKey(pin, salt, CP_SHARE_ITER[2]).then(function (key) {
+     var enc = new TextEncoder();
+     var data = enc.encode(JSON.stringify(obj));
+     return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, data).then(function (cipherBuf) {
+-      return { v: 1, salt: cpBufToB64(salt), iv: cpBufToB64(iv), data: cpBufToB64(cipherBuf) };
++      return { v: 2, salt: cpBufToB64(salt), iv: cpBufToB64(iv), data: cpBufToB64(cipherBuf) };
+     });
+   });
+ };
+ 
+ // Rejects (throws) if the PIN is wrong or the file is corrupted — AES-GCM authenticates itself.
++CP.share.MIN_PASSPHRASE = CP_SHARE_MIN_PASSPHRASE;
++
+ CP.share.decrypt = function (envelope, pin) {
++  if (!envelope || typeof envelope !== 'object' || !CP_SHARE_ITER[envelope.v] ||
++      typeof envelope.salt !== 'string' || typeof envelope.iv !== 'string' || typeof envelope.data !== 'string') {
++    return Promise.reject(new Error('not a share file'));
++  }
+   var salt = cpB64ToBuf(envelope.salt);
+   var iv = cpB64ToBuf(envelope.iv);
+-  return cpDeriveShareKey(pin, new Uint8Array(salt)).then(function (key) {
++  return cpDeriveShareKey(pin, new Uint8Array(salt), CP_SHARE_ITER[envelope.v]).then(function (key) {
+     var cipherBuf = cpB64ToBuf(envelope.data);
+     return crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, key, cipherBuf).then(function (plainBuf) {
+       return JSON.parse(new TextDecoder().decode(plainBuf));
+@@ -75,16 +85,25 @@ CP.share.downloadEnvelope = function (envelope, filenameBase) {
+ };
+ 
+ // Imports a decrypted payload as a brand-new operation, leaving the importer's existing operations untouched.
++// A share file is untrusted input even when it decrypts: every value is cleaned before it is stored
++// (bad ids replaced, unsafe attachments dropped, oversized/odd values rejected).
+ CP.share.importAsNewOperation = function (payload) {
+-  var name = payload._operationName ? payload._operationName + ' (Shared)' : 'Shared Operation';
++  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('not a share payload');
++  var stats = { sanitized: 0 };
++  var cleaned = {};
++  CP.storage.OPERATION_DATA_KEYS.forEach(function (key) {
++    if (payload[key] === undefined || payload[key] === null) return;
++    try { cleaned[key] = CP.storage.sanitizeImported(payload[key], stats); } catch (e) { stats.sanitized++; }
++  });
++  var rawName = typeof payload._operationName === 'string' ? payload._operationName.slice(0, 160) : '';
++  var name = rawName ? rawName + ' (Shared)' : 'Shared Operation';
+   var newId = CP.storage.createOperation(name);
+   var previousId = CP.storage.getCurrentOperationId();
+   CP.storage.setCurrentOperationId(newId);
+-  CP.storage.OPERATION_DATA_KEYS.forEach(function (key) {
+-    if (payload[key] !== undefined && payload[key] !== null) {
+-      CP.storage.save(key, payload[key]);
+-    }
+-  });
+-  CP.storage.setCurrentOperationId(previousId);
+-  return newId;
++  try {
++    Object.keys(cleaned).forEach(function (key) { CP.storage.save(key, cleaned[key]); });
++  } finally {
++    CP.storage.setCurrentOperationId(previousId);
++  }
++  return { id: newId, sanitized: stats.sanitized };
+ };
+diff --git a/js/storage.js b/js/storage.js
+index 9ef73d0..67c928f 100644
+--- a/js/storage.js
++++ b/js/storage.js
+@@ -43,6 +43,98 @@ function cpMigrateToOperationsIfNeeded() {
+   localStorage.setItem(CP.PREFIX + 'currentOperationId', id);
+ }
+ 
++// Every write goes through here so a full/blocked browser store is never silent.
++// The thrown error is tagged (cpAlerted) so callers don't show a second alert.
++var cpLastStorageAlert = 0;
++function cpSafeSetItem(fullKey, str) {
++  try {
++    localStorage.setItem(fullKey, str);
++  } catch (e) {
++    var now = Date.now();
++    if (now - cpLastStorageAlert > 4000) {
++      cpLastStorageAlert = now;
++      alert('Could not save: this browser\u2019s storage is full or blocked, so your last change was NOT saved. ' +
++        'Export a backup now (Export Data), then free up space by deleting old documents or operations.');
++    }
++    if (e && typeof e === 'object') e.cpAlerted = true;
++    throw e;
++  }
++}
++
++// --- Import hardening -------------------------------------------------------
++// Backup and share files are untrusted input: they can come from anyone. Nothing from a file is
++// written to storage unless its key is on the allow-list and its value passes the checks below.
++
++// Never restored from a file: PIN/lock config and the terms-acceptance record are per-device.
++var CP_NEVER_IMPORT = ['appLock', 'disclaimerAcceptance', 'lockAttempts', 'lastBackup'];
++// Never written into backups either (a backup that carries the PIN hash lets anyone try to crack it offline).
++var CP_NEVER_EXPORT = ['appLock', 'disclaimerAcceptance', 'lockAttempts', 'lastBackup'];
++
++var CP_OP_ID_RE = /^op_id_[a-z0-9]+_[a-z0-9]+$/;
++var CP_OP_DATA_KEY_RE = /^op_id_[a-z0-9]+_[a-z0-9]+_[A-Za-z0-9]{1,64}$/;
++var CP_MAX_STRING = 500000;      // ordinary text fields
++var CP_MAX_DATAURL = 4000000;    // uploaded documents (base64)
++var CP_BAD_KEYS = ['__proto__', 'constructor', 'prototype'];
++
++function cpImportKeyAllowed(k) {
++  if (typeof k !== 'string' || CP_NEVER_IMPORT.indexOf(k) !== -1) return false;
++  if (k === 'operations' || k === 'currentOperationId') return true;
++  if (CP_KNOWN_DATA_KEYS.indexOf(k) !== -1) return true;   // pre-operations (flat) backups
++  return CP_OP_DATA_KEY_RE.test(k);
++}
++
++// Returns a cleaned copy of an imported value. Throws if the value is structurally unsafe/oversized.
++// stats.sanitized counts individual fixes (bad ids replaced, unsafe attachments dropped).
++function cpSanitizeImported(v, depth, stats, fieldName) {
++  depth = depth || 0;
++  if (depth > 10) throw new Error('nesting too deep');
++  if (v === null || typeof v === 'boolean') return v;
++  if (typeof v === 'number') { if (!isFinite(v)) throw new Error('bad number'); return v; }
++  if (typeof v === 'string') {
++    if (fieldName === 'dataUrl') {
++      if (v === '') return v;
++      if (v.length > CP_MAX_DATAURL || !CP.ui.safeDataUrl(v)) { stats.sanitized++; return ''; }
++      return v;
++    }
++    if (fieldName === 'id') {
++      if (!CP.ui.safeId(v)) { stats.sanitized++; return CP.storage.uid(); }
++      return v;
++    }
++    if (v.length > CP_MAX_STRING) throw new Error('string too long');
++    return v;
++  }
++  if (Array.isArray(v)) {
++    if (v.length > 20000) throw new Error('array too long');
++    return v.map(function (x) { return cpSanitizeImported(x, depth + 1, stats, null); });
++  }
++  if (typeof v === 'object') {
++    var keys = Object.keys(v);
++    if (keys.length > 500) throw new Error('object too large');
++    var out = {};
++    keys.forEach(function (k) {
++      if (CP_BAD_KEYS.indexOf(k) !== -1) { stats.sanitized++; return; }
++      out[k] = cpSanitizeImported(v[k], depth + 1, stats, k);
++    });
++    return out;
++  }
++  throw new Error('unsupported value');
++}
++
++// The operation registry gets extra checks: only well-formed entries survive.
++function cpCleanOperationsList(list, stats) {
++  if (!Array.isArray(list)) throw new Error('operations must be a list');
++  var clean = [];
++  list.forEach(function (o) {
++    if (!o || typeof o !== 'object' || !CP_OP_ID_RE.test(String(o.id || ''))) { stats.sanitized++; return; }
++    clean.push({
++      id: o.id,
++      name: String(o.name || 'Operation').slice(0, 200),
++      createdDate: /^\d{4}-\d{2}-\d{2}$/.test(String(o.createdDate || '')) ? o.createdDate : new Date().toISOString().slice(0, 10)
++    });
++  });
++  return clean;
++}
++
+ CP.storage = {
+   load: function (key, fallback) {
+     try {
+@@ -56,7 +148,7 @@ CP.storage = {
+   },
+ 
+   save: function (key, value) {
+-    localStorage.setItem(CP.PREFIX + CP.storage.getCurrentOperationId() + '_' + key, JSON.stringify(value));
++    cpSafeSetItem(CP.PREFIX + CP.storage.getCurrentOperationId() + '_' + key, JSON.stringify(value));
+   },
+ 
+   uid: function () {
+@@ -77,7 +169,7 @@ CP.storage = {
+   },
+ 
+   saveGlobal: function (key, value) {
+-    localStorage.setItem(CP.PREFIX + key, JSON.stringify(value));
++    cpSafeSetItem(CP.PREFIX + key, JSON.stringify(value));
+   },
+ 
+   removeGlobal: function (key) {
+@@ -140,13 +232,19 @@ CP.storage = {
+ 
+   // --- Full backup across ALL operations (JSON export/import in the header) ---
+ 
++  getLastBackup: function () {
++    return CP.storage.loadGlobal('lastBackup', null);
++  },
++
+   exportAll: function () {
+     var out = {};
+     for (var i = 0; i < localStorage.length; i++) {
+       var k = localStorage.key(i);
+       if (k.indexOf(CP.PREFIX) === 0) {
++        var short = k.slice(CP.PREFIX.length);
++        if (CP_NEVER_EXPORT.indexOf(short) !== -1) continue;   // PIN hashes etc. never leave the device
+         try {
+-          out[k.slice(CP.PREFIX.length)] = JSON.parse(localStorage.getItem(k));
++          out[short] = JSON.parse(localStorage.getItem(k));
+         } catch (e) {
+           // skip unreadable entry
+         }
+@@ -162,26 +260,72 @@ CP.storage = {
+     a.click();
+     document.body.removeChild(a);
+     URL.revokeObjectURL(url);
++    try { CP.storage.saveGlobal('lastBackup', new Date().toISOString()); } catch (e) { /* non-fatal */ }
++  },
++
++  // Validates and cleans a parsed backup object, then writes only what passes.
++  // Returns { imported, skipped, sanitized }. Throws if the file is not a backup object at all.
++  importParsed: function (data) {
++    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('not a backup object');
++    var result = { imported: 0, skipped: 0, sanitized: 0 };
++    var stats = { sanitized: 0 };
++    Object.keys(data).forEach(function (k) {
++      if (!cpImportKeyAllowed(k)) { result.skipped++; return; }
++      try {
++        var value;
++        if (k === 'operations') value = cpCleanOperationsList(data[k], stats);
++        else if (k === 'currentOperationId') {
++          if (!CP_OP_ID_RE.test(String(data[k] || ''))) { result.skipped++; return; }
++          value = data[k];
++        } else value = cpSanitizeImported(data[k], 0, stats, null);
++        cpSafeSetItem(CP.PREFIX + k, JSON.stringify(value));
++        result.imported++;
++      } catch (e) {
++        result.skipped++;
++      }
++    });
++    result.sanitized = stats.sanitized;
++    // Make sure the "current operation" still points at something that exists.
++    var ops = CP.storage.getOperations();
++    if (ops.length && !ops.some(function (o) { return o.id === CP.storage.getCurrentOperationId(); })) {
++      CP.storage.setCurrentOperationId(ops[0].id);
++    }
++    return result;
+   },
+ 
+   importAll: function (file, cb) {
+     var reader = new FileReader();
+     reader.onload = function () {
+       try {
+-        var data = JSON.parse(reader.result);
+-        Object.keys(data).forEach(function (k) {
+-          localStorage.setItem(CP.PREFIX + k, JSON.stringify(data[k]));
+-        });
+-        if (cb) cb(null);
++        var result = CP.storage.importParsed(JSON.parse(reader.result));
++        if (cb) cb(null, result);
+       } catch (e) {
+         if (cb) cb(e);
+       }
+     };
+     reader.onerror = function () { if (cb) cb(reader.error); };
+     reader.readAsText(file);
++  },
++
++  // Older builds of the app-lock kept PIN/recovery hashes under cpops_security_*. Nothing reads them
++  // any more, so they are dead credential material - remove them.
++  purgeLegacySecurityKeys: function () {
++    var dead = [];
++    for (var i = 0; i < localStorage.length; i++) {
++      var k = localStorage.key(i);
++      if (k && k.indexOf('cpops_security_') === 0) dead.push(k);
++    }
++    dead.forEach(function (k) { localStorage.removeItem(k); });
++    return dead.length;
++  },
++
++  // Deep-cleans a decrypted share payload value (used by CP.share).
++  sanitizeImported: function (value, stats) {
++    return cpSanitizeImported(value, 0, stats || { sanitized: 0 }, null);
+   }
+ };
+ 
+ CP.storage.OPERATION_DATA_KEYS = CP_KNOWN_DATA_KEYS;
+ 
+ cpMigrateToOperationsIfNeeded();
++CP.storage.purgeLegacySecurityKeys();
+diff --git a/js/ui.js b/js/ui.js
+index 89d6802..6fa832d 100644
+--- a/js/ui.js
++++ b/js/ui.js
+@@ -37,6 +37,32 @@ CP.ui.escapeHtml = function (str) {
+     .replace(/'/g, '&#39;');
+ };
+ 
++// --- Hardening helpers: anything that ends up inside an HTML attribute that is NOT
++// plain text (URLs, ids) goes through these. escapeHtml alone does not make a URL safe
++// (javascript: URLs), and imported files can carry arbitrary ids / dataUrls.
++
++// Only plain https links are ever rendered as clickable external links.
++CP.ui.safeUrl = function (url) {
++  var u = String(url || '');
++  // Apostrophes are allowed: encodeURIComponent leaves ' unescaped, and addresses like "St Mary's Rd" are normal.
++  // The value is still passed through escapeHtml before it is placed in an attribute.
++  return /^https:\/\/[A-Za-z0-9.\-]+(:\d+)?(\/[^\s"<>]*)?$/.test(u) ? u : '';
++};
++
++// Uploaded documents are stored as data URLs; only accept the types the upload form allows.
++CP.ui.safeDataUrl = function (u) {
++  u = String(u || '');
++  return /^data:(application\/pdf|image\/(png|jpeg|gif|webp));base64,[A-Za-z0-9+\/=]+$/.test(u) ? u : '';
++};
++
++// Record ids are generated by CP.storage.uid(); anything else is treated as invalid.
++CP.ui.safeId = function (id) {
++  return /^[A-Za-z0-9_\-]{1,80}$/.test(String(id || '')) ? String(id) : '';
++};
++
++// Per-file cap for uploaded documents (stored as base64 in localStorage, ~5 MB shared quota).
++CP.ui.MAX_UPLOAD_BYTES = 1.5 * 1024 * 1024;
++
+ CP.ui.slug = function (s) {
+   var out = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+   return out || 'none';
+@@ -160,11 +186,15 @@ CP.ui.crud = function (container, opts) {
+   }
+ 
+   function rowActionsHtml(rec) {
+-    var html = '<button class="btn btn-small" data-act="edit" data-id="' + rec.id + '">Edit</button> ' +
+-      '<button class="btn btn-small btn-danger" data-act="delete" data-id="' + rec.id + '">Delete</button>';
++    var rid = CP.ui.escapeHtml(CP.ui.safeId(rec.id));
++    var html = '<button class="btn btn-small" data-act="edit" data-id="' + rid + '">Edit</button> ' +
++      '<button class="btn btn-small btn-danger" data-act="delete" data-id="' + rid + '">Delete</button>';
+     if (opts.rowLinks) {
+       (opts.rowLinks(rec) || []).filter(Boolean).forEach(function (link) {
+-        html += ' <a class="btn btn-small" target="_blank" rel="noopener" href="' + link.url + '">' +
++        var url = CP.ui.safeUrl(link.url);
++        if (!url) return;
++        html += ' <a class="btn btn-small" target="_blank" rel="noopener noreferrer" href="' + CP.ui.escapeHtml(url) + '"' +
++          ' title="Opens an external site — the text in this link (e.g. an address) is sent to that site">' +
+           CP.ui.escapeHtml(link.label) + '</a>';
+       });
+     }
+@@ -384,7 +414,8 @@ CP.ui.docLibrary = function (container, opts) {
+       CP.storage.save(opts.storageKey, list);
+       return true;
+     } catch (e) {
+-      alert('Could not save: the file may be too large for browser storage. Try a smaller file, or remove an older document first.');
++      // CP.storage.save already told the user if the browser storage is full.
++      if (!e || !e.cpAlerted) alert('Could not save: the file may be too large for browser storage. Try a smaller file, or remove an older document first.');
+       return false;
+     }
+   }
+@@ -394,7 +425,7 @@ CP.ui.docLibrary = function (container, opts) {
+     return '<form class="crud-form" id="docForm">' +
+       '<label class="field"><span>Title *</span><input type="text" name="title" value="' + CP.ui.escapeHtml(record.title || '') + '"></label>' +
+       '<label class="field"><span>File (PDF or image)' + (record.fileName ? ' — currently: ' + CP.ui.escapeHtml(record.fileName) : '') + '</span>' +
+-      '<input type="file" name="file" accept="application/pdf,image/*"></label>' +
++      '<input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/gif,image/webp"></label>' +
+       '<label class="field"><span>Notes / Details</span><textarea name="notes" rows="3">' + CP.ui.escapeHtml(record.notes || '') + '</textarea></label>' +
+       '<div class="form-actions">' +
+       '<button type="submit" class="btn btn-primary">' + (editId ? 'Save Changes' : 'Add') + '</button>' +
+@@ -403,8 +434,10 @@ CP.ui.docLibrary = function (container, opts) {
+   }
+ 
+   function cardHtml(rec) {
+-    var viewLink = rec.dataUrl
+-      ? '<a class="btn btn-small" href="' + rec.dataUrl + '" download="' + CP.ui.escapeHtml(rec.fileName || 'document') + '" target="_blank" rel="noopener">View / Download</a>'
++    var safeData = CP.ui.safeDataUrl(rec.dataUrl);
++    var rid = CP.ui.escapeHtml(CP.ui.safeId(rec.id));
++    var viewLink = safeData
++      ? '<a class="btn btn-small" href="' + CP.ui.escapeHtml(safeData) + '" download="' + CP.ui.escapeHtml(rec.fileName || 'document') + '" target="_blank" rel="noopener noreferrer">View / Download</a>'
+       : '';
+     return '<div class="card">' +
+       '<div class="card-head"><h3>' + CP.ui.escapeHtml(rec.title) + '</h3>' +
+@@ -412,8 +445,8 @@ CP.ui.docLibrary = function (container, opts) {
+       '</div>' +
+       (rec.notes ? '<p class="notes">' + CP.ui.escapeHtml(rec.notes) + '</p>' : '') +
+       '<div class="card-actions">' + viewLink +
+-      ' <button class="btn btn-small" data-act="edit" data-id="' + rec.id + '">Edit</button>' +
+-      ' <button class="btn btn-small btn-danger" data-act="delete" data-id="' + rec.id + '">Delete</button>' +
++      ' <button class="btn btn-small" data-act="edit" data-id="' + rid + '">Edit</button>' +
++      ' <button class="btn btn-small btn-danger" data-act="delete" data-id="' + rid + '">Delete</button>' +
+       '</div></div>';
+   }
+ 
+@@ -445,6 +478,12 @@ CP.ui.docLibrary = function (container, opts) {
+         if (!title) { alert('Please enter a title.'); return; }
+         var file = form.file.files[0];
+         var notes = form.notes.value;
++        // Browser storage is small (about 5 MB for the whole site, shared with everything else stored here).
++        if (file && file.size > CP.ui.MAX_UPLOAD_BYTES) {
++          alert('That file is too large (' + (file.size / 1048576).toFixed(1) + ' MB). The limit is ' +
++            (CP.ui.MAX_UPLOAD_BYTES / 1048576).toFixed(1) + ' MB per file. Compress it, or keep it elsewhere and add a link in the notes.');
++          return;
++        }
+ 
+         function finish(dataUrl, fileName, fileType) {
+           var current = load();
+@@ -467,7 +506,13 @@ CP.ui.docLibrary = function (container, opts) {
+ 
+         if (file) {
+           var reader = new FileReader();
+-          reader.onload = function () { finish(reader.result, file.name, file.type); };
++          reader.onload = function () {
++            if (!CP.ui.safeDataUrl(reader.result)) {
++              alert('Unsupported file. Use a PDF, PNG, JPEG, GIF or WebP file.');
++              return;
++            }
++            finish(reader.result, file.name, file.type);
++          };
+           reader.onerror = function () { alert('Could not read the file.'); };
+           reader.readAsDataURL(file);
+         } else {
+diff --git a/privacy.html b/privacy.html
+new file mode 100644
+index 0000000..1fb9e77
+--- /dev/null
++++ b/privacy.html
+@@ -0,0 +1,68 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="UTF-8">
++<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
++<meta name="referrer" content="no-referrer">
++<meta name="viewport" content="width=device-width, initial-scale=1.0">
++<title>Privacy Policy — Close Protection Ops</title>
++<style>
++  body { margin: 0; background: #0f1418; color: #e8e6e1; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; }
++  main { max-width: 720px; margin: 0 auto; padding: 28px 20px 60px; }
++  h1 { font-size: 1.6rem; margin: 0 0 4px; }
++  h2 { font-size: 1.1rem; margin: 28px 0 6px; color: #c9a96b; }
++  a { color: #c9a96b; }
++  .meta { color: #9aa0a6; font-size: 0.9rem; margin-bottom: 20px; }
++  ul { padding-left: 20px; }
++</style>
++</head>
++<body>
++<main>
++<h1>Privacy Policy</h1>
++<p class="meta">Close Protection Ops &mdash; last updated 20 September 2026</p>
++
++<h2>Who we are</h2>
++<p>Close Protection Ops (&ldquo;the App&rdquo;) is provided by RD Anzen Ltd, a company registered in England and Wales (company number 08957578).
++Contact: <a href="mailto:Rick@RDAnzen.co.uk">Rick@RDAnzen.co.uk</a>.</p>
++
++<h2>The short version</h2>
++<ul>
++  <li>The App has no accounts, no servers that receive your data, no analytics, no advertising and no tracking. It never sends what you enter to any server.</li>
++  <li>Everything you enter is stored only in your own browser, on your own device. RD Anzen Ltd cannot see it, recover it, or delete it for you.</li>
++  <li>Because you decide what to record about principals, team members, venues and visitors, <strong>you (or your organisation) are the data controller</strong> for that information, not RD Anzen Ltd.</li>
++</ul>
++
++<h2>What is stored on your device</h2>
++<p>The App uses your browser&rsquo;s local storage and a service worker (an offline cache of the App&rsquo;s own files) purely to make the App work and to let it run offline. They are not used to track you.
++What you enter &mdash; which may include names, phone numbers, addresses, routes, vehicle registrations, SIA licence details, visitor logs, travel document details, health information such as blood type, allergies, conditions and medications, and uploaded documents &mdash; stays on the device unless you export or share it yourself.</p>
++<p><strong>It is not encrypted.</strong> The optional PIN lock is a screen lock that deters casual access; it is not encryption and does not protect against someone with technical access to the device. Anyone who can use your browser profile may be able to read the data. Use your device&rsquo;s own security (passcode, full-disk encryption) and keep devices up to date.</p>
++
++<h2>Backups, exports and sharing</h2>
++<p>Export Data (JSON backup) and Export Document (Word) files are created on your device and are <strong>not encrypted</strong>. The Share option produces an encrypted file protected by a passphrase you choose; its strength depends entirely on that passphrase. Once a file leaves the App, keeping it secure is your responsibility.</p>
++
++<h2>Special category (health) information</h2>
++<p>Health information about a person is special category data under UK GDPR. If you record it, you need a lawful basis and an Article 9 condition (for example the person&rsquo;s explicit consent, or vital interests in an emergency), and only the information needed. RD Anzen Ltd does not receive or process it.</p>
++
++<h2>Hosting</h2>
++<p>The App is delivered as a static website by GitHub Pages. When your device loads the App, GitHub, as our hosting provider, receives standard technical information (such as your IP address and browser details) under its own privacy statement:
++<a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub General Privacy Statement</a>.
++The App itself loads no third-party scripts, fonts or trackers.</p>
++
++<h2>Links to other sites</h2>
++<p>Some buttons open Google Maps, what3words or GOV.UK in a new tab. If you click one, the text in the link (for example an address, a three-word address or a country name) is sent to that site, which has its own privacy policy. Nothing is sent unless you click.</p>
++
++<h2>If you contact us</h2>
++<p>If you email us we will use your email address and message to reply and keep a record of the correspondence, for as long as needed for that purpose.</p>
++
++<h2>Your rights</h2>
++<p>Because RD Anzen Ltd holds none of the data you enter into the App, we cannot access, correct or delete it for you; you can do that yourself inside the App or by clearing this site&rsquo;s data in your browser. For anything we do hold about you (such as correspondence), you have the rights set out in UK GDPR, which you can exercise by emailing us. You can also complain to the Information Commissioner&rsquo;s Office:
++<a href="https://ico.org.uk/make-a-complaint/" target="_blank" rel="noopener noreferrer">ico.org.uk/make-a-complaint</a>.</p>
++
++<h2>Children</h2>
++<p>The App is a professional tool and is not intended for children.</p>
++
++<h2>Changes</h2>
++<p>We may update this policy. The date at the top shows when it last changed.</p>
++</main>
++</body>
++</html>
+diff --git a/sw.js b/sw.js
+index f3cf640..19ba841 100644
+--- a/sw.js
++++ b/sw.js
+@@ -1,9 +1,11 @@
+-var CACHE_NAME = 'cp-ops-v5';
++var CACHE_NAME = 'cp-ops-v6';
++var CACHE_PREFIX = 'cp-ops-v';   // only ever clean up this app's own caches (not cp-ops-beta-*, not saferoute-*)
+ 
+ var PRECACHE_URLS = [
+   './',
+   './index.html',
+   './manifest.json',
++  './privacy.html',
+   './css/style.css',
+   './js/storage.js',
+   './js/ui.js',
+@@ -47,7 +49,7 @@ self.addEventListener('activate', function (event) {
+   event.waitUntil(
+     caches.keys().then(function (keys) {
+       return Promise.all(
+-        keys.filter(function (key) { return key !== CACHE_NAME; })
++        keys.filter(function (key) { return key.indexOf(CACHE_PREFIX) === 0 && key !== CACHE_NAME; })
+           .map(function (key) { return caches.delete(key); })
+       );
+     }).then(function () {

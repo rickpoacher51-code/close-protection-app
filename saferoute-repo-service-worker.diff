@@ -1,0 +1,22 @@
+diff --git a/service-worker.js b/service-worker.js
+index 4bb355f..1ddfcae 100644
+--- a/service-worker.js
++++ b/service-worker.js
+@@ -1,4 +1,5 @@
+-const CACHE_NAME = "saferoute-v19";
++const CACHE_NAME = "saferoute-v20";
++const CACHE_PREFIX = "saferoute-";
+ const ASSETS = [
+   "./",
+   "./index.html",
+@@ -37,7 +38,9 @@ self.addEventListener("activate", (event) => {
+     caches.keys().then((keys) =>
+       Promise.all(
+         keys
+-          .filter((key) => key !== CACHE_NAME)
++          // Only clean up SafeRoute's own old caches. This site (rickpoacher51-code.github.io) also hosts
++          // Close Protection Ops, whose caches are named cp-ops-*; deleting every other cache wiped its offline copy.
++          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+           .map((key) => caches.delete(key))
+       )
+     )
